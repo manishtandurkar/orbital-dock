@@ -140,6 +140,9 @@ void Station::buildColliders()
 {
     colliders_.push_back({hub_, {{-6.0f, -4.2f, -13.0f}, {6.0f, 4.2f, 13.0f}}});
     colliders_.push_back({hub_, {{-4.2f, -6.0f, -13.0f}, {4.2f, 6.0f, 13.0f}}});
+    colliders_.push_back({hub_, {{-3.0f, -3.0f, -21.8f}, {3.0f, 3.0f, -13.0f}}});
+    colliders_.push_back({hub_, {{-0.1f, 3.4f, -20.0f}, {0.1f, 8.6f, -14.6f}}});
+    colliders_.push_back({hub_, {{-0.1f, -8.6f, -20.0f}, {0.1f, -3.4f, -14.6f}}});
     colliders_.push_back({deck_, {{-2.2f, 6.0f, -11.7f}, {2.2f, 7.6f, 10.8f}}});
     colliders_.push_back({deck_, {{-2.2f, 6.6f, -11.7f}, {2.2f, 9.9f, -10.5f}}});
     colliders_.push_back({solar_, {{4.0f, -0.3f, -24.5f}, {40.0f, 0.3f, -9.5f}}});

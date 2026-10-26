@@ -85,12 +85,12 @@ src/platform  the only OS-specific code (executable path lookup)
 third_party   GLAD, stb_image, miniaudio
 ```
 
-## Replacing the placeholder models
+## Editing the 3D models
 
-The models in `assets/models` are simple generated placeholders. `blender/orbital_dock.blend` holds all of them, one Blender scene per model, at the exact origin, scale and axes the game uses. Model over the placeholder in its scene, save, then export every scene back to `assets/models` with:
+The models in `assets/models` are modelled after real hardware: an ISS-style hub with MLI thermal blankets, cupola, radiators and handrails, ISS-style solar array wings, a segmented habitat ring, a Soyuz-style pod (probe, orbital module, descent module, service module with RCS quads), a docking port with capture ring, guide petals and drogue, a pistol-grip tool, and orbital debris (truss, solar panel fragment, wrapped pressure tank, rocks). `blender/orbital_dock.blend` holds all of them, one Blender scene per model, at the exact origin, scale and axes the game uses. Edit a model in its scene, save, then export every scene back to `assets/models` with:
 
 ```
 /Applications/Blender.app/Contents/MacOS/Blender blender/orbital_dock.blend --background --python tools/blender/export_models.py
 ```
 
-(on Windows use the path to `blender.exe`; the script can also be run from Blender's Scripting tab). The script applies the right OBJ settings and fixes the `.mtl` values the game reads; the top of `tools/blender/export_models.py` explains which Blender material settings map to which values. Textures must live in `assets/textures`. Scenes whose names start with `_` are not exported. Keep each model's origin and scale matching the placeholder, because the station layout, colliders and docking offset in `src/gameplay/Station.cpp` are built around them. `tools/blender/build_reference_blend.py` rebuilds the `.blend` from the OBJ files; it refuses to overwrite an existing `.blend` unless given `-- --force`.
+(on Windows use the path to `blender.exe`; the script can also be run from Blender's Scripting tab). The script applies the right OBJ settings and fixes the `.mtl` values the game reads; the top of `tools/blender/export_models.py` explains which Blender material settings map to which values. Textures must live in `assets/textures`. Scenes whose names start with `_` are not exported. Keep each model's origin and scale as they are, because the station layout, colliders and docking offset in `src/gameplay/Station.cpp` are built around them. The models were built with `tools/blender/build_models.py` (rerun it for a model to regenerate that scene from code; this discards hand edits to that scene) and the new textures with `tools/blender/make_textures.py`. `tools/blender/build_reference_blend.py` rebuilds the `.blend` from the OBJ files; it refuses to overwrite an existing `.blend` unless given `-- --force`.

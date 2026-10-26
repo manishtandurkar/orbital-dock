@@ -87,4 +87,10 @@ third_party   GLAD, stb_image, miniaudio
 
 ## Replacing the placeholder models
 
-The models in `assets/models` are simple generated placeholders. To swap one for a Blender model, export it as OBJ with **Forward: -Z, Up: Y**, normals, UVs and materials enabled, and overwrite the file with the same name. Textures referenced by `map_Kd` are resolved relative to the `.mtl` file. Keep each model's origin and scale matching the placeholder, because the station layout, colliders and docking offset in `src/gameplay/Station.cpp` are built around them.
+The models in `assets/models` are simple generated placeholders. `blender/orbital_dock.blend` holds all of them, one Blender scene per model, at the exact origin, scale and axes the game uses. Model over the placeholder in its scene, save, then export every scene back to `assets/models` with:
+
+```
+/Applications/Blender.app/Contents/MacOS/Blender blender/orbital_dock.blend --background --python tools/blender/export_models.py
+```
+
+(on Windows use the path to `blender.exe`; the script can also be run from Blender's Scripting tab). The script applies the right OBJ settings and fixes the `.mtl` values the game reads; the top of `tools/blender/export_models.py` explains which Blender material settings map to which values. Textures must live in `assets/textures`. Scenes whose names start with `_` are not exported. Keep each model's origin and scale matching the placeholder, because the station layout, colliders and docking offset in `src/gameplay/Station.cpp` are built around them. `tools/blender/build_reference_blend.py` rebuilds the `.blend` from the OBJ files; it refuses to overwrite an existing `.blend` unless given `-- --force`.

@@ -7,3 +7,4 @@ out/
 *.user
 .DS_Store
 imgui.ini
+*.blend1

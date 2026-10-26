@@ -34,8 +34,26 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 - README.md with build steps, controls and lab-requirement mapping.
 - Debug: F1 overlay (FPS, collision wireframes); F2 while F1 is on jumps the pod 20 m in front of the port, aligned, for testing/demo rehearsal.
 
+### Realism and demo pass (done)
+- HDR rendering into a 4x MSAA RGBA16F target, bloom, ACES tone mapping, vignette (`render/PostProcess`).
+- Sun shadow mapping, 2048 depth map with 3x3 hardware PCF (`render/ShadowMap`), focused on the camera's view, the EVA deck or the station.
+- Earth-like planet with atmosphere rim, HDR sun disc, blue earthshine fill light, darker ambient.
+- Smooth textured asteroids; particles for sparks, exhaust, docking puff and the pod explosion.
+- Shift fine thrust, station marker/off-screen arrow, TOO FAST warning, soft-capture docking port (contacts under 2 m/s are absorbed).
+- Mission area boundary (warning at 550 m, fail at 800 m). Esc no longer quits from the main menu.
+- F3 stereo, F11 fullscreen, F4 simulated hit (debug), scene graph panel in F1 overlay.
+- State transitions are printed to stdout (`State: Docking -> EVA`) for scripted testing.
+- `media/orbital_dock_playthrough.mp4`: recording of menu, flight and docking (EVA part not included).
+
+### End-to-end test results (Linux, Xvfb, real keyboard/mouse via xdotool)
+- Menu, Controls toggle, Start, pause/resume, Restart, Main Menu, Quit: pass.
+- Flight with debris impacts, damage, shake, proximity warnings: pass.
+- Docking via fine thrust and via soft capture at 1.4 m/s, clamps, EVA transition: pass.
+- EVA walk, hold-E repair, win screen, Fly Again (pod un-parented from port): pass.
+- Lose by hull destroyed (explosion), by life support, by leaving mission area: pass.
+- Stereo in flight and EVA, fullscreen toggle: pass.
+
 ### Not yet done / next
-- Hull-destroyed loss path not tested (pause menu and life-support loss were tested and work).
 - macOS and Windows builds have never been compiled; do this first on both laptops.
 - Replace placeholder OBJ models with Blender models (keep the file names in `assets/models`; export OBJ with Forward -Z, Up Y, include normals and UVs, write materials). Station layout constants (hub radius 6, deck top y=6.6, arm base z=13, arm length 10, port docking offset 4.4) are in `src/gameplay/Station.cpp` and colliders there must match the new models.
 - Optional: stereo side-by-side view, tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`).

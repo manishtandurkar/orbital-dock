@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 namespace {
 
@@ -173,6 +174,7 @@ void Game::changeState(GameState next)
 
 void Game::onStateEntered(GameState from, GameState to)
 {
+    std::cout << "State: " << gameStateName(from) << " -> " << gameStateName(to) << std::endl;
     switch (to) {
     case GameState::Menu:
         resetMission();

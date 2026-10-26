@@ -4,6 +4,10 @@ A desktop 3D space-station docking and repair simulator built in C++17 and OpenG
 
 Fly a maintenance pod through a drifting debris field, dock with a slowly rotating space station by matching its position, speed, alignment and roll, then step out on a first-person spacewalk and repair a damaged hull panel before life support runs out.
 
+## Demo video
+
+`media/orbital_dock_playthrough.mp4` is a 2-minute recording of the main menu, the flight through the debris field and the docking approach up to clamp lock (software-rendered on Linux, no audio).
+
 ## Build and run
 
 Requirements: CMake 3.20+, a C++17 compiler and an internet connection for the first configure (GLFW, GLM, Assimp and Dear ImGui are downloaded by `FetchContent`).
@@ -51,6 +55,10 @@ The `assets/` folder is copied next to the executable after every build, so the 
 | `Esc` | Pause menu | Pause menu |
 | `F1` | Debug overlay: FPS, collision volumes | Debug overlay |
 | `F2` | With the debug overlay open: jump to the docking approach | |
+| `F4` | With the debug overlay open: simulate a debris hit | |
+| `Shift` | Fine thrust (25%) for the final approach | |
+| `F3` | Side-by-side stereo view | Side-by-side stereo view |
+| `F11` | Fullscreen | Fullscreen |
 
 ## How the lab requirements are met
 

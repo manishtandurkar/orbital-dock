@@ -14,6 +14,7 @@ struct PodControls {
     float rollInput = 0.0f;
     glm::vec2 mouseLook{0.0f};
     bool brake = false;
+    bool precision = false;
 
     static PodControls fromInput(const Input& input);
     bool anyThrust() const;

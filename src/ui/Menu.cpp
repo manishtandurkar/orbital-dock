@@ -129,9 +129,11 @@ void Menu::drawControls() const
     ImGui::BulletText("W / S  forward / reverse thrust");
     ImGui::BulletText("A / D  yaw,  Q / E  roll,  R / F  up / down");
     ImGui::BulletText("Mouse  pitch and yaw,  Space  brake");
-    ImGui::BulletText("Tab  alignment assist,  V  chase / cockpit view");
+    ImGui::BulletText("Shift  fine thrust,  Tab  alignment assist");
+    ImGui::BulletText("V  chase / cockpit view");
     ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.25f, 1.0f), "EVA");
     ImGui::BulletText("W A S D  move,  Mouse  look,  hold E  repair");
     ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.25f, 1.0f), "Global");
     ImGui::BulletText("Esc  pause,  F1  debug overlay");
+    ImGui::BulletText("F3  side-by-side stereo,  F11  fullscreen");
 }

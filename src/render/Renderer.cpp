@@ -7,6 +7,7 @@
 #include "render/Texture.h"
 
 #include <glad/glad.h>
+#include <glm/geometric.hpp>
 #include <glm/matrix.hpp>
 
 #include <algorithm>
@@ -47,16 +48,21 @@ Renderer::Renderer()
     gldebug::checkErrors("Renderer::Renderer");
 }
 
-void Renderer::beginFrame(const Camera& camera, const glm::ivec2& framebufferSize, const Lighting& lighting)
+void Renderer::clear(const glm::ivec2& framebufferSize)
 {
     glViewport(0, 0, framebufferSize.x, framebufferSize.y);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void Renderer::beginView(const Camera& camera, const glm::ivec2& viewportOrigin, const glm::ivec2& viewportSize, const Lighting& lighting)
+{
+    glViewport(viewportOrigin.x, viewportOrigin.y, viewportSize.x, viewportSize.y);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable(GL_CULL_FACE);
 
-    viewportHeight_ = static_cast<float>(framebufferSize.y);
+    viewportHeight_ = static_cast<float>(viewportSize.y);
     view_ = camera.viewMatrix();
     projection_ = camera.projectionMatrix();
 
@@ -68,6 +74,7 @@ void Renderer::beginFrame(const Camera& camera, const glm::ivec2& framebufferSiz
 
 void Renderer::applyLighting(const Lighting& lighting)
 {
+    sun_ = lighting.sun;
     litShader_.setVec3("uSun.direction", lighting.sun.direction);
     litShader_.setVec3("uSun.color", lighting.sun.color);
     litShader_.setFloat("uSun.intensity", lighting.sun.intensity);
@@ -98,6 +105,8 @@ void Renderer::drawModel(const Model& model, const glm::mat4& world, const DrawS
     litShader_.setVec3("uTint", style.tint);
     litShader_.setFloat("uEmissiveStrength", style.emissiveStrength);
     litShader_.setBool("uUnlit", style.unlit);
+    litShader_.setFloat("uRimStrength", style.rimStrength);
+    litShader_.setVec3("uRimColor", style.rimColor);
 
     for (const Model::Part& part : model.parts()) {
         const Material& material = part.material;
@@ -121,6 +130,8 @@ void Renderer::drawMesh(const Mesh& mesh, const glm::mat4& world, const glm::vec
     litShader_.setVec3("uTint", style.tint);
     litShader_.setFloat("uEmissiveStrength", style.emissiveStrength);
     litShader_.setBool("uUnlit", style.unlit);
+    litShader_.setFloat("uRimStrength", style.rimStrength);
+    litShader_.setVec3("uRimColor", style.rimColor);
     litShader_.setVec3("uDiffuseColor", color);
     litShader_.setVec3("uSpecularColor", glm::vec3(0.3f));
     litShader_.setFloat("uShininess", 16.0f);
@@ -145,11 +156,16 @@ void Renderer::drawParticles(ParticleSystem& particles)
     glDisable(GL_BLEND);
 }
 
-void Renderer::endFrame()
+void Renderer::endView()
 {
     drawDebugLines();
     drawSkybox();
-    gldebug::checkErrors("Renderer::endFrame");
+    gldebug::checkErrors("Renderer::endView");
+}
+
+void Renderer::clearDebugLines()
+{
+    debugLines_.clear();
 }
 
 void Renderer::drawSkybox()
@@ -160,6 +176,8 @@ void Renderer::drawSkybox()
     const glm::mat4 viewRotation = glm::mat4(glm::mat3(view_));
     skyboxShader_.setMat4("uViewRotationProjection", projection_ * viewRotation);
     skyboxShader_.setFloat("uBrightness", kSkyBrightness);
+    skyboxShader_.setVec3("uSunDirection", glm::normalize(-sun_.direction));
+    skyboxShader_.setVec3("uSunColor", sun_.color);
     sky_.bind(kSkyTextureUnit);
     skyCube_.draw();
     glEnable(GL_CULL_FACE);
@@ -175,7 +193,6 @@ void Renderer::drawDebugLines()
     lineShader_.use();
     lineShader_.setMat4("uViewProjection", projection_ * view_);
     debugLines_.draw();
-    debugLines_.clear();
 }
 
 DebugLines& Renderer::debugLines()

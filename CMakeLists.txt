@@ -131,6 +131,7 @@ set(ORBITAL_DOCK_SOURCES
     src/ui/ImGuiLayer.cpp
     src/ui/Hud.cpp
     src/ui/Menu.cpp
+    src/ui/SceneGraphPanel.cpp
 )
 
 add_executable(orbital_dock ${ORBITAL_DOCK_SOURCES})

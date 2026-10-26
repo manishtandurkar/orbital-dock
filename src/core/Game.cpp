@@ -36,6 +36,12 @@ constexpr float kCinematicDegreesPerSecond = 5.0f;
 constexpr float kAxisGuideLength = 70.0f;
 constexpr float kBannerFadeSeconds = 0.8f;
 constexpr float kDebugApproachDistance = 20.0f;
+constexpr glm::vec3 kPlanetPosition{-300.0f, -2400.0f, -2500.0f};
+constexpr float kPlanetRadius = 2000.0f;
+constexpr float kPlanetSpinDegreesPerSecond = 0.4f;
+constexpr float kPlanetTiltDegrees = -40.0f;
+constexpr float kEvaEyeSeparation = 0.065f;
+constexpr float kFlightEyeSeparation = 0.35f;
 
 const glm::vec3 kGuideColor(0.3f, 1.0f, 0.45f);
 const glm::vec4 kImpactSparkColor(1.0f, 0.6f, 0.2f, 1.0f);
@@ -64,6 +70,12 @@ Game::Game()
     pod_ = std::make_unique<Pod>(podNode);
     debris_ = std::make_unique<DebrisField>(world_, models_);
     toolModel_ = &models_.get("repair_tool");
+
+    planet_ = &world_.createChild("planet");
+    planet_->setModel(&models_.get("planet"));
+    planet_->setPosition(kPlanetPosition);
+    planet_->setScale(glm::vec3(kPlanetRadius));
+    planet_->drawStyle().rimStrength = 2.2f;
 
     camera_.setPerspective(kFieldOfViewDegrees, kNearPlane, kFarPlane);
     stateMachine_.setTransitionHandler([this](GameState from, GameState to) { onStateEntered(from, to); });
@@ -109,6 +121,13 @@ void Game::handleGlobalInput()
     }
     if (input_.wasKeyPressed(GLFW_KEY_F1)) {
         showDebug_ = !showDebug_;
+    }
+    if (input_.wasKeyPressed(GLFW_KEY_F11)) {
+        window_.toggleFullscreen();
+        input_.resetMouseDelta();
+    }
+    if (input_.wasKeyPressed(GLFW_KEY_F3)) {
+        stereo_ = !stereo_;
     }
     if (stateMachine_.isPaused() || !isPlayableState()) {
         return;
@@ -210,6 +229,9 @@ void Game::update(float deltaSeconds)
     }
     stateMachine_.advance(deltaSeconds);
     station_->update(deltaSeconds, timer_.elapsedSeconds());
+    planetSpinDegrees_ += kPlanetSpinDegreesPerSecond * deltaSeconds;
+    planet_->setRotation(glm::angleAxis(glm::radians(kPlanetTiltDegrees), glm::vec3(1.0f, 0.0f, 0.0f))
+        * glm::angleAxis(glm::radians(planetSpinDegrees_), glm::vec3(0.0f, 1.0f, 0.0f)));
     damageFlash_ = std::max(damageFlash_ - kDamageFlashDecayPerSecond * deltaSeconds, 0.0f);
     bannerSeconds_ = std::max(bannerSeconds_ - deltaSeconds, 0.0f);
 
@@ -492,6 +514,9 @@ Lighting Game::buildLighting() const
 void Game::render()
 {
     camera_.setAspectRatio(window_.aspectRatio());
+    if (stereo_) {
+        camera_.setAspectRatio(window_.aspectRatio() * 0.5f);
+    }
     renderScene();
     renderUi();
 }
@@ -500,8 +525,40 @@ void Game::renderScene()
 {
     const Lighting lighting = buildLighting();
     lastPointLightCount_ = static_cast<int>(lighting.pointLights.size());
-    renderer_->beginFrame(camera_, window_.framebufferSize(), lighting);
+    queueGuideLines();
 
+    const glm::ivec2 framebuffer = window_.framebufferSize();
+    renderer_->clear(framebuffer);
+    if (!stereo_) {
+        renderView(camera_, glm::ivec2(0), framebuffer, lighting);
+    } else {
+        const glm::ivec2 eyeSize(framebuffer.x / 2, framebuffer.y);
+        const float separation = stateMachine_.current() == GameState::Eva ? kEvaEyeSeparation : kFlightEyeSeparation;
+        for (int eye = 0; eye < 2; ++eye) {
+            const float side = eye == 0 ? -0.5f : 0.5f;
+            Camera eyeCamera = camera_;
+            eyeCamera.setAspectRatio(static_cast<float>(eyeSize.x) / static_cast<float>(std::max(eyeSize.y, 1)));
+            eyeCamera.setPosition(camera_.position() + camera_.right() * side * separation);
+            renderView(eyeCamera, glm::ivec2(eye * eyeSize.x, 0), eyeSize, lighting);
+        }
+    }
+    renderer_->clearDebugLines();
+}
+
+void Game::queueGuideLines()
+{
+    if (stateMachine_.current() == GameState::Docking && alignmentAssist_ && !docked_) {
+        const glm::vec3 start = station_->dockingTargetWorld();
+        renderer_->debugLines().addLine(start, start + station_->dockingAxisWorld() * kAxisGuideLength, kGuideColor);
+    }
+    if (showDebug_) {
+        renderDebugVolumes();
+    }
+}
+
+void Game::renderView(const Camera& camera, const glm::ivec2& viewportOrigin, const glm::ivec2& viewportSize, const Lighting& lighting)
+{
+    renderer_->beginView(camera, viewportOrigin, viewportSize, lighting);
     world_.visit([this](const SceneNode& node, const glm::mat4& worldMatrix) {
         if (node.model() != nullptr) {
             renderer_->drawModel(*node.model(), worldMatrix, node.drawStyle());
@@ -513,15 +570,7 @@ void Game::renderScene()
         toolStyle.emissiveStrength = eva_.isRepairing() ? 3.0f : 0.6f;
         renderer_->drawModel(*toolModel_, eva_.toolWorldMatrix(station_->deck(), timer_.elapsedSeconds()), toolStyle);
     }
-
-    if (stateMachine_.current() == GameState::Docking && alignmentAssist_ && !docked_) {
-        const glm::vec3 start = station_->dockingTargetWorld();
-        renderer_->debugLines().addLine(start, start + station_->dockingAxisWorld() * kAxisGuideLength, kGuideColor);
-    }
-    if (showDebug_) {
-        renderDebugVolumes();
-    }
-    renderer_->endFrame();
+    renderer_->endView();
     renderer_->drawParticles(*particles_);
 }
 
@@ -579,6 +628,16 @@ HudData Game::buildHudData() const
     data.docked = docked_;
     data.portMarker = projectToScreen(station_->dockingTargetWorld());
     data.boresightMarker = projectToScreen(pod_->worldPosition() + pod_->forward() * std::max(data.distanceToPort, 5.0f));
+    data.navigationMarker = data.portMarker;
+    if (!data.navigationMarker.visible) {
+        const glm::vec3 viewSpace = glm::vec3(camera_.viewMatrix() * glm::vec4(station_->dockingTargetWorld(), 1.0f));
+        const glm::vec2 screenDirection(viewSpace.x, -viewSpace.y);
+        data.navigationArrowVisible = glm::length(screenDirection) > 1e-3f;
+        if (data.navigationArrowVisible) {
+            data.navigationArrowDirection = glm::normalize(screenDirection);
+        }
+    }
+    data.precisionThrust = input_.isKeyDown(GLFW_KEY_LEFT_SHIFT) || input_.isKeyDown(GLFW_KEY_RIGHT_SHIFT);
     data.lifeSupportSeconds = mission_.lifeSupportSeconds();
     data.lifeSupportFraction = mission_.lifeSupportFraction();
     data.canInteract = eva_.canInteract();
@@ -617,6 +676,7 @@ void Game::renderUi()
     default:
         HudData hudData = buildHudData();
         hudData.alignmentAssist = alignmentAssist_ && !stateMachine_.isPaused();
+        hudData.stereo = stereo_;
         hud_.draw(hudData);
         if (stateMachine_.isPaused()) {
             action = menu_.drawPauseMenu();
@@ -624,9 +684,10 @@ void Game::renderUi()
         break;
     }
     if (showDebug_ && !isPlayableState()) {
-        HudData debugData = buildHudData();
-        debugData.state = stateMachine_.current();
-        hud_.draw(debugData);
+        hud_.draw(buildHudData());
+    }
+    if (showDebug_) {
+        sceneGraphPanel_.draw(world_);
     }
     imgui_->endFrame();
     gldebug::checkErrors("Game::renderUi");

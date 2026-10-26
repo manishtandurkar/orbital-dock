@@ -23,6 +23,8 @@ public:
     float aspectRatio() const;
     bool isMinimized() const;
 
+    void toggleFullscreen();
+    bool isFullscreen() const;
     void setCursorCaptured(bool captured);
     bool isCursorCaptured() const;
 
@@ -31,4 +33,7 @@ public:
 private:
     GLFWwindow* window_ = nullptr;
     bool cursorCaptured_ = false;
+    bool fullscreen_ = false;
+    glm::ivec2 windowedPosition_{100, 100};
+    glm::ivec2 windowedSize_{1280, 720};
 };

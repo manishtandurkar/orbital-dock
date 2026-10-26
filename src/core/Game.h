@@ -16,6 +16,7 @@
 #include "scene/SceneNode.h"
 #include "ui/Hud.h"
 #include "ui/Menu.h"
+#include "ui/SceneGraphPanel.h"
 
 #include <memory>
 #include <string>
@@ -59,6 +60,8 @@ private:
 
     void render();
     void renderScene();
+    void renderView(const Camera& camera, const glm::ivec2& viewportOrigin, const glm::ivec2& viewportSize, const Lighting& lighting);
+    void queueGuideLines();
     void renderDebugVolumes();
     void renderUi();
     Lighting buildLighting() const;
@@ -80,6 +83,8 @@ private:
     std::unique_ptr<Pod> pod_;
     std::unique_ptr<DebrisField> debris_;
     const Model* toolModel_ = nullptr;
+    SceneNode* planet_ = nullptr;
+    float planetSpinDegrees_ = 0.0f;
 
     ChaseCamera chaseCamera_;
     EvaController eva_;
@@ -89,9 +94,11 @@ private:
     Mission mission_;
     Hud hud_;
     Menu menu_;
+    SceneGraphPanel sceneGraphPanel_;
 
     bool alignmentAssist_ = true;
     bool showDebug_ = false;
+    bool stereo_ = false;
     bool docked_ = false;
     float dockedSeconds_ = 0.0f;
     float winDelaySeconds_ = -1.0f;

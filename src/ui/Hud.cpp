@@ -60,12 +60,16 @@ void Hud::draw(const HudData& data) const
     switch (data.state) {
     case GameState::Flight:
         drawFlightPanel(data);
+        drawNavigation(data);
         break;
     case GameState::Docking:
         drawFlightPanel(data);
         drawDockingPanel(data);
-        if (data.alignmentAssist && !data.docked) {
+        if (data.alignmentAssist && !data.docked && !data.stereo) {
             drawDockingMarkers(data);
+        }
+        if (!data.alignmentAssist && !data.docked) {
+            drawNavigation(data);
         }
         break;
     case GameState::Eva:
@@ -90,6 +94,9 @@ void Hud::drawFlightPanel(const HudData& data) const
     ImGui::Text("Speed        %6.1f m/s", data.speed);
     ImGui::Text("Port range   %6.0f m", data.distanceToPort);
     ImGui::Text("View         %s", data.cockpitView ? "cockpit" : "chase");
+    if (data.precisionThrust) {
+        ImGui::TextColored(kAccent, "FINE THRUST (Shift)");
+    }
     if (data.closingDebris > 0) {
         ImGui::TextColored(kBad, "PROXIMITY: %d object%s closing", data.closingDebris, data.closingDebris == 1 ? "" : "s");
     }
@@ -120,6 +127,10 @@ void Hud::drawDockingPanel(const HudData& data) const
     ImGui::Text("Lateral offset  x %+5.1f  y %+5.1f m", status.lateralOffset.x, status.lateralOffset.y);
     ImGui::Text("Closing speed   %+5.2f m/s", status.closingSpeed);
     coloredBar(status.holdProgress, status.allWithinTolerance() ? kGood : kWarning, "HOLD");
+    if (status.distance < 25.0f && status.closingSpeed > 2.0f) {
+        const bool blink = std::fmod(ImGui::GetTime(), 0.5) < 0.25;
+        ImGui::TextColored(blink ? kBad : kWarning, "TOO FAST: brake (Space) or fine thrust (Shift)");
+    }
     if (status.axialDistance < -0.5f) {
         ImGui::TextColored(kBad, "Behind the port: back off and approach along the axis");
     }
@@ -151,6 +162,38 @@ void Hud::drawDockingMarkers(const HudData& data) const
     }
 }
 
+void Hud::drawNavigation(const HudData& data) const
+{
+    if (data.stereo) {
+        return;
+    }
+    ImDrawList* drawList = ImGui::GetForegroundDrawList();
+    const ImU32 color = toColor(kAccent, 0.9f);
+    char label[48];
+    std::snprintf(label, sizeof(label), "STATION %.0f m", data.distanceToPort);
+    if (data.navigationMarker.visible) {
+        const ImVec2 centre(data.navigationMarker.position.x, data.navigationMarker.position.y);
+        const float size = 12.0f;
+        drawList->AddQuad(ImVec2(centre.x, centre.y - size), ImVec2(centre.x + size, centre.y), ImVec2(centre.x, centre.y + size),
+            ImVec2(centre.x - size, centre.y), color, 2.0f);
+        drawList->AddText(ImVec2(centre.x + 16.0f, centre.y - 8.0f), color, label);
+        return;
+    }
+    if (!data.navigationArrowVisible) {
+        return;
+    }
+    const ImVec2 display = ImGui::GetIO().DisplaySize;
+    const ImVec2 centre(display.x * 0.5f, display.y * 0.5f);
+    const float radius = std::min(display.x, display.y) * 0.4f;
+    const glm::vec2 direction = data.navigationArrowDirection;
+    const ImVec2 tip(centre.x + direction.x * radius, centre.y + direction.y * radius);
+    const glm::vec2 side(-direction.y, direction.x);
+    const ImVec2 left(tip.x - direction.x * 22.0f + side.x * 11.0f, tip.y - direction.y * 22.0f + side.y * 11.0f);
+    const ImVec2 right(tip.x - direction.x * 22.0f - side.x * 11.0f, tip.y - direction.y * 22.0f - side.y * 11.0f);
+    drawList->AddTriangleFilled(tip, left, right, color);
+    drawList->AddText(ImVec2(tip.x - direction.x * 60.0f - 40.0f, tip.y - direction.y * 50.0f - 8.0f), color, label);
+}
+
 void Hud::drawEvaPanel(const HudData& data) const
 {
     beginOverlay("EvaPanel", ImVec2(16.0f, 16.0f), ImVec2(0.0f, 0.0f));
@@ -169,7 +212,12 @@ void Hud::drawEvaPanel(const HudData& data) const
     const ImVec2 display = ImGui::GetIO().DisplaySize;
     ImDrawList* drawList = ImGui::GetForegroundDrawList();
     const ImVec2 centre(display.x * 0.5f, display.y * 0.5f);
-    drawList->AddCircle(centre, 3.0f, toColor(kAccent, 0.8f), 12, 1.5f);
+    if (data.stereo) {
+        drawList->AddCircle(ImVec2(display.x * 0.25f, centre.y), 3.0f, toColor(kAccent, 0.8f), 12, 1.5f);
+        drawList->AddCircle(ImVec2(display.x * 0.75f, centre.y), 3.0f, toColor(kAccent, 0.8f), 12, 1.5f);
+    } else {
+        drawList->AddCircle(centre, 3.0f, toColor(kAccent, 0.8f), 12, 1.5f);
+    }
 
     if (data.canInteract || data.repairing) {
         beginOverlay("RepairPrompt", ImVec2(centre.x, centre.y + 60.0f), ImVec2(0.5f, 0.0f));
@@ -224,5 +272,6 @@ void Hud::drawDebug(const HudData& data) const
     ImGui::Text("Point lights  %d", data.pointLightCount);
     ImGui::Text("Collision volumes drawn as wireframes");
     ImGui::Text("F2  jump to docking approach");
+    ImGui::Text("F3  stereo view   F11  fullscreen");
     ImGui::End();
 }

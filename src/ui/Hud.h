@@ -26,6 +26,11 @@ struct HudData {
     bool docked = false;
     ScreenMarker portMarker;
     ScreenMarker boresightMarker;
+    ScreenMarker navigationMarker;
+    bool navigationArrowVisible = false;
+    glm::vec2 navigationArrowDirection{0.0f, -1.0f};
+    bool precisionThrust = false;
+    bool stereo = false;
     float lifeSupportSeconds = 0.0f;
     float lifeSupportFraction = 1.0f;
     bool canInteract = false;
@@ -47,6 +52,7 @@ private:
     void drawFlightPanel(const HudData& data) const;
     void drawDockingPanel(const HudData& data) const;
     void drawDockingMarkers(const HudData& data) const;
+    void drawNavigation(const HudData& data) const;
     void drawEvaPanel(const HudData& data) const;
     void drawDamageFlash(const HudData& data) const;
     void drawBanner(const HudData& data) const;

@@ -5,7 +5,7 @@
 #include <vector>
 
 struct DirectionalLight {
-    glm::vec3 direction{-0.4f, -0.3f, -1.0f};
+    glm::vec3 direction{0.6f, -0.35f, -0.4f};
     glm::vec3 color{1.0f, 0.96f, 0.88f};
     float intensity = 2.2f;
 };

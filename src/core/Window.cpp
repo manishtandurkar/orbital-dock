@@ -101,6 +101,29 @@ bool Window::isMinimized() const
     return size.x <= 0 || size.y <= 0;
 }
 
+void Window::toggleFullscreen()
+{
+    if (fullscreen_) {
+        glfwSetWindowMonitor(window_, nullptr, windowedPosition_.x, windowedPosition_.y, windowedSize_.x, windowedSize_.y, GLFW_DONT_CARE);
+        fullscreen_ = false;
+        return;
+    }
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = monitor != nullptr ? glfwGetVideoMode(monitor) : nullptr;
+    if (mode == nullptr) {
+        return;
+    }
+    glfwGetWindowPos(window_, &windowedPosition_.x, &windowedPosition_.y);
+    glfwGetWindowSize(window_, &windowedSize_.x, &windowedSize_.y);
+    glfwSetWindowMonitor(window_, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    fullscreen_ = true;
+}
+
+bool Window::isFullscreen() const
+{
+    return fullscreen_;
+}
+
 void Window::setCursorCaptured(bool captured)
 {
     if (captured == cursorCaptured_) {

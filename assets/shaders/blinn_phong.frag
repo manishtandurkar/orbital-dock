@@ -35,6 +35,8 @@ uniform vec3 uTint;
 uniform bool uUseDiffuseMap;
 uniform sampler2D uDiffuseMap;
 uniform bool uUnlit;
+uniform vec3 uRimColor;
+uniform float uRimStrength;
 
 out vec4 fragColor;
 
@@ -93,6 +95,12 @@ void main()
             color += blinnPhong(normal, viewDirection, lightDirection, radiance, albedo);
         }
         color += emissive;
+
+        if (uRimStrength > 0.0) {
+            float rim = pow(1.0 - max(dot(normal, viewDirection), 0.0), 3.0);
+            float sunFacing = 0.25 + 0.75 * max(dot(normal, sunDirection), 0.0);
+            color += toLinear(uRimColor) * rim * sunFacing * uRimStrength;
+        }
     }
 
     vec3 mapped = vec3(1.0) - exp(-color * uExposure);

@@ -23,6 +23,7 @@ constexpr float kMaxAngularSpeed = 1.4f;
 constexpr float kAngularDampingRate = 2.8f;
 constexpr float kMouseRadiansPerPixel = 0.0020f;
 constexpr float kThrusterResponseRate = 6.0f;
+constexpr float kPrecisionScale = 0.25f;
 
 float axis(const Input& input, int positiveKey, int negativeKey)
 {
@@ -52,6 +53,7 @@ PodControls PodControls::fromInput(const Input& input)
     controls.rollInput = axis(input, GLFW_KEY_Q, GLFW_KEY_E);
     controls.mouseLook = input.mouseDelta();
     controls.brake = input.isKeyDown(GLFW_KEY_SPACE);
+    controls.precision = input.isKeyDown(GLFW_KEY_LEFT_SHIFT) || input.isKeyDown(GLFW_KEY_RIGHT_SHIFT);
     return controls;
 }
 
@@ -104,15 +106,16 @@ void Pod::update(const PodControls& controls, float deltaSeconds, const glm::vec
 void Pod::integrateRotation(const PodControls& controls, float deltaSeconds, const glm::vec3& matchAngularVelocityWorld)
 {
     const glm::vec3 targetBody = glm::conjugate(orientation_) * matchAngularVelocityWorld;
+    const float scale = controls.precision ? kPrecisionScale : 1.0f;
     const float damping = exponentialBlend(kAngularDampingRate, deltaSeconds);
 
     if (controls.yawInput != 0.0f) {
-        angularVelocityBody_.y += controls.yawInput * kYawAcceleration * deltaSeconds;
+        angularVelocityBody_.y += controls.yawInput * kYawAcceleration * scale * deltaSeconds;
     } else {
         angularVelocityBody_.y = glm::mix(angularVelocityBody_.y, targetBody.y, damping);
     }
     if (controls.rollInput != 0.0f) {
-        angularVelocityBody_.z += controls.rollInput * kRollAcceleration * deltaSeconds;
+        angularVelocityBody_.z += controls.rollInput * kRollAcceleration * scale * deltaSeconds;
     } else {
         angularVelocityBody_.z = glm::mix(angularVelocityBody_.z, targetBody.z, damping);
     }
@@ -123,7 +126,7 @@ void Pod::integrateRotation(const PodControls& controls, float deltaSeconds, con
     angularVelocityBody_ = glm::clamp(angularVelocityBody_, glm::vec3(-kMaxAngularSpeed), glm::vec3(kMaxAngularSpeed));
 
     const glm::vec3 rotationThisFrame = angularVelocityBody_ * deltaSeconds
-        + glm::vec3(-controls.mouseLook.y, -controls.mouseLook.x, 0.0f) * kMouseRadiansPerPixel;
+        + glm::vec3(-controls.mouseLook.y, -controls.mouseLook.x, 0.0f) * kMouseRadiansPerPixel * (controls.precision ? 0.5f : 1.0f);
     const float angle = glm::length(rotationThisFrame);
     if (angle > 1e-7f) {
         orientation_ = glm::normalize(orientation_ * glm::angleAxis(angle, rotationThisFrame / angle));
@@ -139,6 +142,9 @@ void Pod::integrateTranslation(const PodControls& controls, float deltaSeconds)
         acceleration += forward() * kReverseAcceleration * controls.forwardThrust;
     }
     acceleration += up() * kVerticalAcceleration * controls.verticalThrust;
+    if (controls.precision) {
+        acceleration *= kPrecisionScale;
+    }
     velocity_ += acceleration * deltaSeconds;
 
     if (controls.brake) {

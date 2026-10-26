@@ -18,17 +18,21 @@ struct DrawStyle {
     glm::vec3 tint{1.0f};
     float emissiveStrength = 1.0f;
     bool unlit = false;
+    float rimStrength = 0.0f;
+    glm::vec3 rimColor{0.4f, 0.65f, 1.0f};
 };
 
 class Renderer {
 public:
     Renderer();
 
-    void beginFrame(const Camera& camera, const glm::ivec2& framebufferSize, const Lighting& lighting);
+    void clear(const glm::ivec2& framebufferSize);
+    void beginView(const Camera& camera, const glm::ivec2& viewportOrigin, const glm::ivec2& viewportSize, const Lighting& lighting);
     void drawModel(const Model& model, const glm::mat4& world, const DrawStyle& style = {});
     void drawMesh(const Mesh& mesh, const glm::mat4& world, const glm::vec3& color, const DrawStyle& style = {});
     void drawParticles(ParticleSystem& particles);
-    void endFrame();
+    void endView();
+    void clearDebugLines();
 
     DebugLines& debugLines();
 
@@ -48,4 +52,5 @@ private:
     glm::mat4 view_{1.0f};
     glm::mat4 projection_{1.0f};
     float viewportHeight_ = 1.0f;
+    DirectionalLight sun_;
 };

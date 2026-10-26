@@ -54,8 +54,9 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 - Stereo in flight and EVA, fullscreen toggle: pass.
 
 ### Not yet done / next
-- macOS and Windows builds have never been compiled; do this first on both laptops.
-- Replace placeholder OBJ models with Blender models (keep the file names in `assets/models`; export OBJ with Forward -Z, Up Y, include normals and UVs, write materials). Station layout constants (hub radius 6, deck top y=6.6, arm base z=13, arm length 10, port docking offset 4.4) are in `src/gameplay/Station.cpp` and colliders there must match the new models.
+- macOS: compiles and launches (Apple clang 21, CMake 4.4, branch `fix/macos-build`). The fix: Assimp's bundled zlib fails to compile against the new macOS SDK (`fdopen` macro clash in `zutil.h`), so on Apple `ASSIMP_BUILD_ZLIB` is OFF and the system zlib is used. The full checklist below (gameplay, sound, FPS) still needs a manual run on the Mac.
+- Windows has never been compiled; do this next on the Windows laptop.
+- Replace placeholder OBJ models with Blender models. Set up: `blender/orbital_dock.blend` (one scene per model, built by `tools/blender/build_reference_blend.py`) and `tools/blender/export_models.py` (exports every scene to `assets/models` and fixes the MTL: Kd for textured materials from Viewport Display color, coloured Ks from Specular Tint, texture paths as `../textures/...`). Round trip verified: all 20 placeholders re-export with identical bounds, materials, texture paths, UVs and normals (within 0.001); only zero-area triangles are dropped; the game loads them. Station layout constants (hub radius 6, deck top y=6.6, arm base z=13, arm length 10, port docking offset 4.4) are in `src/gameplay/Station.cpp` and colliders there must match the new models.
 - Optional: tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`), re-record the demo video including EVA and the win screen.
 - Merge `feature/core-gameplay` into `main` once both laptops build and run it.
 

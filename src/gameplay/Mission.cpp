@@ -78,6 +78,8 @@ std::string Mission::lossMessage() const
         return "Hull breach. The pod broke apart in the debris field.";
     case LossReason::LifeSupportDepleted:
         return "Life support ran out before the panel was repaired.";
+    case LossReason::LeftMissionArea:
+        return "The pod drifted out of the mission area and lost contact with the station.";
     case LossReason::None:
         break;
     }

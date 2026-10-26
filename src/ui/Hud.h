@@ -31,6 +31,8 @@ struct HudData {
     glm::vec2 navigationArrowDirection{0.0f, -1.0f};
     bool precisionThrust = false;
     bool stereo = false;
+    bool paused = false;
+    bool leavingMissionArea = false;
     float lifeSupportSeconds = 0.0f;
     float lifeSupportFraction = 1.0f;
     bool canInteract = false;

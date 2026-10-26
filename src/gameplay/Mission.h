@@ -5,7 +5,8 @@
 enum class LossReason {
     None,
     HullDestroyed,
-    LifeSupportDepleted
+    LifeSupportDepleted,
+    LeftMissionArea
 };
 
 class Mission {

@@ -31,6 +31,7 @@ constexpr float kClampClosedDegrees = 35.0f;
 constexpr float kClampDegreesPerSecond = 70.0f;
 
 constexpr float kDockedPodOffset = 4.4f;
+constexpr float kPortStopPlaneZ = 2.3f;
 
 constexpr float kDeckTop = 6.6f;
 constexpr glm::vec3 kRepairPanelPosition{0.0f, kDeckTop + 1.4f, -10.47f};
@@ -145,7 +146,7 @@ void Station::buildColliders()
     colliders_.push_back({solar_, {{-40.0f, -0.3f, -24.5f}, {-4.0f, 0.3f, -9.5f}}});
     colliders_.push_back({arm_, {{-2.0f, -0.9f, 0.0f}, {2.0f, 0.9f, 1.2f}}});
     colliders_.push_back({arm_, {{-0.9f, -0.9f, 0.0f}, {0.9f, 0.9f, kArmLength - 0.8f}}});
-    colliders_.push_back({port_, {{-2.3f, -2.3f, -0.8f}, {2.3f, 2.3f, 0.25f}}});
+    colliders_.push_back({port_, {{-2.3f, -2.3f, -0.8f}, {2.3f, 2.3f, kPortStopPlaneZ}}});
 
     for (int segment = 0; segment < kRingColliderSegments; ++segment) {
         const float a0 = glm::two_pi<float>() * static_cast<float>(segment) / kRingColliderSegments;

@@ -60,15 +60,17 @@ void Hud::draw(const HudData& data) const
     switch (data.state) {
     case GameState::Flight:
         drawFlightPanel(data);
-        drawNavigation(data);
+        if (!data.paused) {
+            drawNavigation(data);
+        }
         break;
     case GameState::Docking:
         drawFlightPanel(data);
         drawDockingPanel(data);
-        if (data.alignmentAssist && !data.docked && !data.stereo) {
+        if (data.alignmentAssist && !data.docked && !data.stereo && !data.paused) {
             drawDockingMarkers(data);
         }
-        if (!data.alignmentAssist && !data.docked) {
+        if (!data.alignmentAssist && !data.docked && !data.paused) {
             drawNavigation(data);
         }
         break;
@@ -103,6 +105,10 @@ void Hud::drawFlightPanel(const HudData& data) const
     if (data.hullFraction < 0.3f) {
         const bool blink = std::fmod(ImGui::GetTime(), 0.8) < 0.4;
         ImGui::TextColored(blink ? kBad : kWarning, "HULL CRITICAL");
+    }
+    if (data.leavingMissionArea) {
+        const bool blink = std::fmod(ImGui::GetTime(), 0.8) < 0.4;
+        ImGui::TextColored(blink ? kBad : kWarning, "LEAVING MISSION AREA: turn back");
     }
     ImGui::End();
 }
@@ -272,6 +278,7 @@ void Hud::drawDebug(const HudData& data) const
     ImGui::Text("Point lights  %d", data.pointLightCount);
     ImGui::Text("Collision volumes drawn as wireframes");
     ImGui::Text("F2  jump to docking approach");
+    ImGui::Text("F4  simulate a debris hit (25%% hull)");
     ImGui::Text("F3  stereo view   F11  fullscreen");
     ImGui::End();
 }

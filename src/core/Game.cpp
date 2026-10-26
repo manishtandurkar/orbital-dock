@@ -41,6 +41,9 @@ constexpr float kPlanetRadius = 2000.0f;
 constexpr float kPlanetSpinDegreesPerSecond = 0.4f;
 constexpr float kPlanetTiltDegrees = -40.0f;
 constexpr float kEvaEyeSeparation = 0.065f;
+constexpr float kMissionAreaRadius = 800.0f;
+constexpr float kDebugImpactDamage = 25.0f;
+constexpr float kMissionAreaWarningRadius = 550.0f;
 constexpr float kFlightEyeSeparation = 0.35f;
 
 const glm::vec3 kGuideColor(0.3f, 1.0f, 0.45f);
@@ -115,8 +118,6 @@ void Game::handleGlobalInput()
             if (stateMachine_.isPaused()) {
                 audio_.stopAllLoops();
             }
-        } else if (stateMachine_.current() == GameState::Menu) {
-            window_.requestClose();
         }
     }
     if (input_.wasKeyPressed(GLFW_KEY_F1)) {
@@ -140,6 +141,13 @@ void Game::handleGlobalInput()
     }
     if (showDebug_ && input_.wasKeyPressed(GLFW_KEY_F2) && stateMachine_.current() != GameState::Eva && !docked_) {
         placePodOnDockingApproach();
+    }
+    if (showDebug_ && input_.wasKeyPressed(GLFW_KEY_F4) && stateMachine_.current() != GameState::Eva && !docked_) {
+        ImpactEvent simulated;
+        simulated.point = pod_->position() + pod_->forward() * Pod::kCollisionRadius;
+        simulated.impactSpeed = 10.0f;
+        simulated.damage = kDebugImpactDamage;
+        applyImpact(simulated);
     }
 }
 
@@ -325,7 +333,13 @@ void Game::updateFlight(float deltaSeconds)
     handleImpacts();
 
     if (pod_->isDestroyed()) {
+        explodePod();
         mission_.fail(LossReason::HullDestroyed);
+        changeState(GameState::Lose);
+        return;
+    }
+    if (glm::length(pod_->worldPosition()) > kMissionAreaRadius) {
+        mission_.fail(LossReason::LeftMissionArea);
         changeState(GameState::Lose);
         return;
     }
@@ -346,21 +360,51 @@ void Game::handleImpacts()
 {
     const std::vector<ImpactEvent> impacts = collisions_.resolve(*pod_, *debris_, *station_);
     for (const ImpactEvent& impact : impacts) {
-        pod_->applyDamage(impact.damage);
-        mission_.recordImpact(impact.damage);
-        chaseCamera_.addShake(std::min(0.35f + impact.damage / 30.0f, 1.0f));
-        damageFlash_ = std::min(damageFlash_ + 0.5f + impact.damage / 30.0f, 1.0f);
-        audio_.playOneShot(Sound::Impact, std::min(0.4f + impact.damage / 25.0f, 1.0f));
-        ParticleBurst sparks;
-        sparks.position = impact.point;
-        sparks.baseVelocity = pod_->velocity();
-        sparks.spreadSpeed = 4.0f + impact.impactSpeed * 0.3f;
-        sparks.color = kImpactSparkColor;
-        sparks.lifeSeconds = 0.8f;
-        sparks.size = 0.12f;
-        sparks.count = 30 + static_cast<int>(impact.damage * 2.0f);
-        particles_->emit(sparks);
+        applyImpact(impact);
     }
+}
+
+void Game::explodePod()
+{
+    const glm::vec3 centre = pod_->worldPosition();
+    ParticleBurst fireball;
+    fireball.position = centre;
+    fireball.baseVelocity = pod_->velocity();
+    fireball.spreadSpeed = 9.0f;
+    fireball.color = kImpactSparkColor;
+    fireball.lifeSeconds = 2.0f;
+    fireball.size = 0.6f;
+    fireball.count = 400;
+    particles_->emit(fireball);
+    ParticleBurst debris;
+    debris.position = centre;
+    debris.baseVelocity = pod_->velocity();
+    debris.spreadSpeed = 16.0f;
+    debris.color = glm::vec4(0.9f, 0.9f, 1.0f, 1.0f);
+    debris.lifeSeconds = 3.0f;
+    debris.size = 0.12f;
+    debris.count = 200;
+    particles_->emit(debris);
+    pod_->node().setVisible(false);
+    chaseCamera_.addShake(1.0f);
+}
+
+void Game::applyImpact(const ImpactEvent& impact)
+{
+    pod_->applyDamage(impact.damage);
+    mission_.recordImpact(impact.damage);
+    chaseCamera_.addShake(std::min(0.35f + impact.damage / 30.0f, 1.0f));
+    damageFlash_ = std::min(damageFlash_ + 0.5f + impact.damage / 30.0f, 1.0f);
+    audio_.playOneShot(Sound::Impact, std::min(0.4f + impact.damage / 25.0f, 1.0f));
+    ParticleBurst sparks;
+    sparks.position = impact.point;
+    sparks.baseVelocity = pod_->velocity();
+    sparks.spreadSpeed = 4.0f + impact.impactSpeed * 0.3f;
+    sparks.color = kImpactSparkColor;
+    sparks.lifeSeconds = 0.8f;
+    sparks.size = 0.12f;
+    sparks.count = 30 + static_cast<int>(impact.damage * 2.0f);
+    particles_->emit(sparks);
 }
 
 void Game::updateDocking(float deltaSeconds)
@@ -637,6 +681,7 @@ HudData Game::buildHudData() const
             data.navigationArrowDirection = glm::normalize(screenDirection);
         }
     }
+    data.leavingMissionArea = glm::length(pod_->worldPosition()) > kMissionAreaWarningRadius;
     data.precisionThrust = input_.isKeyDown(GLFW_KEY_LEFT_SHIFT) || input_.isKeyDown(GLFW_KEY_RIGHT_SHIFT);
     data.lifeSupportSeconds = mission_.lifeSupportSeconds();
     data.lifeSupportFraction = mission_.lifeSupportFraction();
@@ -675,7 +720,7 @@ void Game::renderUi()
     }
     default:
         HudData hudData = buildHudData();
-        hudData.alignmentAssist = alignmentAssist_ && !stateMachine_.isPaused();
+        hudData.paused = stateMachine_.isPaused();
         hudData.stereo = stereo_;
         hud_.draw(hudData);
         if (stateMachine_.isPaused()) {

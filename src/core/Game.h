@@ -54,6 +54,8 @@ private:
     void resetMission();
     void dockPod();
     void handleImpacts();
+    void applyImpact(const ImpactEvent& impact);
+    void explodePod();
     void showBanner(const std::string& text, float seconds);
     void applyMenuAction(MenuAction action);
     bool isPlayableState() const;

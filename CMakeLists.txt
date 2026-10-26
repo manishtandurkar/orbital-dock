@@ -109,6 +109,15 @@ set(ORBITAL_DOCK_SOURCES
     src/render/Shader.cpp
     src/render/Mesh.cpp
     src/render/Camera.cpp
+    src/render/Texture.cpp
+    src/render/Cubemap.cpp
+    src/render/Model.cpp
+    src/render/ModelLibrary.cpp
+    src/render/DebugLines.cpp
+    src/render/Renderer.cpp
+    src/scene/SceneNode.cpp
+    src/physics/Collision.cpp
+    src/gameplay/Station.cpp
 )
 
 add_executable(orbital_dock ${ORBITAL_DOCK_SOURCES})

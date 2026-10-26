@@ -1,16 +1,17 @@
 #include "core/Game.h"
 
-#include "render/GlDebug.h"
+#include "gameplay/Station.h"
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <cmath>
 
 namespace {
 
 constexpr int kWindowWidth = 1280;
 constexpr int kWindowHeight = 720;
-constexpr float kCubeSpinDegreesPerSecond = 45.0f;
+constexpr float kOrbitDegreesPerSecond = 6.0f;
 
 }
 
@@ -18,17 +19,28 @@ Game::Game()
     : window_(kWindowWidth, kWindowHeight, "Orbital Dock")
     , input_(window_.handle())
     , stateMachine_(GameState::Menu)
+    , world_("world")
 {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    glEnable(GL_MULTISAMPLE);
+    renderer_ = std::make_unique<Renderer>();
+    station_ = std::make_unique<Station>(world_, models_);
+    station_->setArmDeployed(true);
 
-    litShader_ = std::make_unique<Shader>("shaders/blinn_phong.vert", "shaders/blinn_phong.frag");
-    cube_ = std::make_unique<Mesh>(Mesh::createUnitCube());
-    camera_.lookAt(glm::vec3(0.0f, 1.5f, 4.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    SceneNode& pod = world_.createChild("pod");
+    pod.setModel(&models_.get("pod"));
+    pod.setPosition({0.0f, 0.0f, 40.0f});
+
+    const char* debrisNames[] = {"debris_rock_a", "debris_rock_b", "debris_panel", "debris_tank", "debris_beam"};
+    for (int i = 0; i < 5; ++i) {
+        SceneNode& debris = world_.createChild("debris");
+        debris.setModel(&models_.get(debrisNames[i]));
+        debris.setPosition({-12.0f + 6.0f * static_cast<float>(i), 10.0f, 50.0f});
+        debris.setScale(glm::vec3(1.5f));
+    }
+
+    camera_.setPerspective(60.0f, 0.1f, 4000.0f);
 }
+
+Game::~Game() = default;
 
 void Game::run()
 {
@@ -50,39 +62,28 @@ void Game::update(float deltaSeconds)
         window_.requestClose();
     }
     stateMachine_.advance(deltaSeconds);
-    cubeAngle_ += kCubeSpinDegreesPerSecond * deltaSeconds;
+    station_->update(deltaSeconds, timer_.elapsedSeconds());
+    orbitAngle_ += kOrbitDegreesPerSecond * deltaSeconds;
+    const float radians = glm::radians(orbitAngle_);
+    const glm::vec3 eye(std::sin(radians) * 70.0f, 25.0f, std::cos(radians) * 90.0f);
+    camera_.lookAt(eye, glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
+Lighting Game::buildLighting() const
+{
+    Lighting lighting;
+    station_->appendLights(lighting.pointLights);
+    return lighting;
 }
 
 void Game::render()
 {
-    const glm::ivec2 size = window_.framebufferSize();
-    glViewport(0, 0, size.x, size.y);
-    glClearColor(0.01f, 0.01f, 0.03f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     camera_.setAspectRatio(window_.aspectRatio());
-    const glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(cubeAngle_), glm::vec3(0.3f, 1.0f, 0.1f));
-
-    litShader_->use();
-    litShader_->setMat4("uModel", model);
-    litShader_->setMat3("uNormalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
-    litShader_->setMat4("uViewProjection", camera_.viewProjectionMatrix());
-    litShader_->setVec3("uViewPosition", camera_.position());
-    litShader_->setFloat("uExposure", 1.0f);
-    litShader_->setVec3("uAmbientColor", glm::vec3(0.08f));
-    litShader_->setVec3("uSun.direction", glm::vec3(-0.5f, -0.6f, -0.4f));
-    litShader_->setVec3("uSun.color", glm::vec3(1.0f, 0.95f, 0.85f));
-    litShader_->setFloat("uSun.intensity", 2.0f);
-    litShader_->setInt("uPointLightCount", 0);
-    litShader_->setVec3("uDiffuseColor", glm::vec3(0.7f, 0.72f, 0.75f));
-    litShader_->setVec3("uSpecularColor", glm::vec3(0.6f));
-    litShader_->setFloat("uShininess", 48.0f);
-    litShader_->setVec3("uEmissiveColor", glm::vec3(0.0f));
-    litShader_->setFloat("uEmissiveStrength", 0.0f);
-    litShader_->setVec3("uTint", glm::vec3(1.0f));
-    litShader_->setBool("uUseDiffuseMap", false);
-    litShader_->setBool("uUnlit", false);
-    cube_->draw();
-
-    gldebug::checkErrors("Game::render");
+    renderer_->beginFrame(camera_, window_.framebufferSize(), buildLighting());
+    world_.visit([this](const SceneNode& node, const glm::mat4& worldMatrix) {
+        if (node.model() != nullptr) {
+            renderer_->drawModel(*node.model(), worldMatrix, node.drawStyle());
+        }
+    });
+    renderer_->endFrame();
 }

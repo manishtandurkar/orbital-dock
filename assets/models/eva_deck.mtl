@@ -1,0 +1,56 @@
+newmtl deck
+Ka 0.000 0.000 0.000
+Kd 0.450 0.470 0.500
+Ks 0.400 0.400 0.400
+Ns 32.0
+Ke 0.000 0.000 0.000
+d 1.0
+illum 2
+map_Kd ../textures/deck_grating.png
+
+newmtl hull_dark
+Ka 0.000 0.000 0.000
+Kd 0.320 0.340 0.370
+Ks 0.400 0.400 0.400
+Ns 32.0
+Ke 0.000 0.000 0.000
+d 1.0
+illum 2
+
+newmtl trim_orange
+Ka 0.000 0.000 0.000
+Kd 0.950 0.450 0.080
+Ks 0.300 0.300 0.300
+Ns 24.0
+Ke 0.000 0.000 0.000
+d 1.0
+illum 2
+
+newmtl metal
+Ka 0.000 0.000 0.000
+Kd 0.550 0.560 0.580
+Ks 0.800 0.800 0.800
+Ns 96.0
+Ke 0.000 0.000 0.000
+d 1.0
+illum 2
+
+newmtl hull
+Ka 0.000 0.000 0.000
+Kd 0.820 0.830 0.850
+Ks 0.550 0.550 0.550
+Ns 64.0
+Ke 0.000 0.000 0.000
+d 1.0
+illum 2
+map_Kd ../textures/hull_panel.png
+
+newmtl status_green
+Ka 0.000 0.000 0.000
+Kd 0.050 0.300 0.050
+Ks 0.200 0.200 0.200
+Ns 16.0
+Ke 0.200 1.000 0.300
+d 1.0
+illum 2
+

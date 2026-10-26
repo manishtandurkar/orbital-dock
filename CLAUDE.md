@@ -186,3 +186,7 @@ third_party/
 - When adding a file, update `CMakeLists.txt` and verify it still configures for both platforms
 - Prefer small, runnable increments: after each change the project should still build and launch
 - Ask before introducing a new dependency or changing the directory layout
+
+## Progress Log
+
+@PROGRESS.md

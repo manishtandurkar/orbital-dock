@@ -230,6 +230,13 @@ void Station::setArmDeployed(bool deployed)
     armDeployed_ = deployed;
 }
 
+void Station::deployArmImmediately()
+{
+    armDeployed_ = true;
+    armAngleDegrees_ = kArmDeployedDegrees;
+    updateArm(0.0f);
+}
+
 bool Station::isArmDeployed() const
 {
     return std::abs(armAngleDegrees_ - kArmDeployedDegrees) < 0.01f && armDeployed_;
@@ -331,7 +338,7 @@ std::vector<Sphere> Station::worldSphereColliders() const
 void Station::appendLights(std::vector<PointLight>& lights) const
 {
     for (const SceneNode* lamp : floodlights_) {
-        lights.push_back({lamp->localToWorldPoint(kLampHeadOffset), {1.0f, 0.93f, 0.8f}, 7.0f, 16.0f});
+        lights.push_back({lamp->localToWorldPoint(kLampHeadOffset), {1.0f, 0.93f, 0.8f}, 3.2f, 15.0f});
     }
     if (warningLevel_ > 0.01f) {
         lights.push_back({warningLight_->localToWorldPoint({0.0f, 0.2f, 0.4f}), {1.0f, 0.15f, 0.08f}, 9.0f * warningLevel_, 14.0f});

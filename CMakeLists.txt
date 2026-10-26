@@ -117,7 +117,19 @@ set(ORBITAL_DOCK_SOURCES
     src/render/Renderer.cpp
     src/scene/SceneNode.cpp
     src/physics/Collision.cpp
+    src/physics/DockingCheck.cpp
     src/gameplay/Station.cpp
+    src/gameplay/Pod.cpp
+    src/gameplay/Debris.cpp
+    src/gameplay/DebrisField.cpp
+    src/gameplay/CollisionResolver.cpp
+    src/gameplay/ChaseCamera.cpp
+    src/gameplay/EvaController.cpp
+    src/gameplay/Mission.cpp
+    src/audio/AudioEngine.cpp
+    src/ui/ImGuiLayer.cpp
+    src/ui/Hud.cpp
+    src/ui/Menu.cpp
 )
 
 add_executable(orbital_dock ${ORBITAL_DOCK_SOURCES})

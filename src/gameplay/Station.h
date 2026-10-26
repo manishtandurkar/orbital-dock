@@ -28,6 +28,7 @@ public:
     void update(float deltaSeconds, double elapsedSeconds);
 
     void setArmDeployed(bool deployed);
+    void deployArmImmediately();
     bool isArmDeployed() const;
     void setClampsClosed(bool closed);
     bool areClampsClosed() const;

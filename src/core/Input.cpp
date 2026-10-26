@@ -32,12 +32,30 @@ Input::Input(GLFWwindow* window)
 {
     static_assert(GLFW_KEY_LAST + 1 <= kKeyCount, "Key table too small");
     static_assert(GLFW_MOUSE_BUTTON_LAST + 1 <= kMouseButtonCount, "Mouse table too small");
+    glfwSetWindowUserPointer(window_, this);
+    glfwSetKeyCallback(window_, onKeyEvent);
+}
+
+Input::~Input()
+{
+    glfwSetKeyCallback(window_, nullptr);
+    glfwSetWindowUserPointer(window_, nullptr);
+}
+
+void Input::onKeyEvent(GLFWwindow* window, int key, int, int action, int)
+{
+    auto* input = static_cast<Input*>(glfwGetWindowUserPointer(window));
+    if (input != nullptr && action == GLFW_PRESS && isValidKey(key, kKeyCount)) {
+        input->pressLatch_[key] = true;
+    }
 }
 
 void Input::update()
 {
     previousKeys_ = currentKeys_;
     previousButtons_ = currentButtons_;
+    pressedThisFrame_ = pressLatch_;
+    pressLatch_.fill(false);
 
     for (int key = kFirstValidKey; key <= GLFW_KEY_LAST; ++key) {
         if (isGlfwKeyCode(key)) {
@@ -74,7 +92,7 @@ bool Input::isKeyDown(int key) const
 
 bool Input::wasKeyPressed(int key) const
 {
-    return isValidKey(key, kKeyCount) && currentKeys_[key] && !previousKeys_[key];
+    return isValidKey(key, kKeyCount) && (pressedThisFrame_[key] || (currentKeys_[key] && !previousKeys_[key]));
 }
 
 bool Input::wasKeyReleased(int key) const

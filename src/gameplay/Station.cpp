@@ -146,7 +146,7 @@ void Station::buildColliders()
     colliders_.push_back({solar_, {{-40.0f, -0.3f, -24.5f}, {-4.0f, 0.3f, -9.5f}}});
     colliders_.push_back({arm_, {{-2.0f, -0.9f, 0.0f}, {2.0f, 0.9f, 1.2f}}});
     colliders_.push_back({arm_, {{-0.9f, -0.9f, 0.0f}, {0.9f, 0.9f, kArmLength - 0.8f}}});
-    colliders_.push_back({port_, {{-2.3f, -2.3f, -0.8f}, {2.3f, 2.3f, kPortStopPlaneZ}}});
+    colliders_.push_back({port_, {{-2.3f, -2.3f, -0.8f}, {2.3f, 2.3f, kPortStopPlaneZ}}, true});
 
     for (int segment = 0; segment < kRingColliderSegments; ++segment) {
         const float a0 = glm::two_pi<float>() * static_cast<float>(segment) / kRingColliderSegments;
@@ -344,7 +344,7 @@ void Station::appendLights(std::vector<PointLight>& lights) const
     if (warningLevel_ > 0.01f) {
         lights.push_back({warningLight_->localToWorldPoint({0.0f, 0.2f, 0.4f}), {1.0f, 0.15f, 0.08f}, 9.0f * warningLevel_, 14.0f});
     }
-    lights.push_back({port_->localToWorldPoint(kPortGuideLightOffset), {0.3f, 1.0f, 0.4f}, 4.0f, 14.0f});
+    lights.push_back({port_->localToWorldPoint(kPortGuideLightOffset), {0.3f, 1.0f, 0.4f}, 1.5f, 10.0f});
 }
 
 float Station::warningLightLevel() const

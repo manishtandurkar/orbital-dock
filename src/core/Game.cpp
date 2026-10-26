@@ -6,6 +6,7 @@
 #include "render/GlDebug.h"
 #include "render/Model.h"
 #include "render/ParticleSystem.h"
+#include "render/PostProcess.h"
 #include "ui/ImGuiLayer.h"
 
 #include <GLFW/glfw3.h>
@@ -42,6 +43,10 @@ constexpr float kPlanetSpinDegreesPerSecond = 0.4f;
 constexpr float kPlanetTiltDegrees = -40.0f;
 constexpr float kEvaEyeSeparation = 0.065f;
 constexpr float kMissionAreaRadius = 800.0f;
+constexpr float kMenuShadowRadius = 48.0f;
+constexpr float kEvaShadowRadius = 22.0f;
+constexpr float kFlightShadowRadius = 60.0f;
+constexpr glm::vec3 kDeckShadowFocus{0.0f, 6.6f, -2.0f};
 constexpr float kDebugImpactDamage = 25.0f;
 constexpr float kMissionAreaWarningRadius = 550.0f;
 constexpr float kFlightEyeSeparation = 0.35f;
@@ -66,6 +71,7 @@ Game::Game()
     renderer_ = std::make_unique<Renderer>();
     imgui_ = std::make_unique<ImGuiLayer>(window_.handle());
     particles_ = std::make_unique<ParticleSystem>();
+    postProcess_ = std::make_unique<PostProcess>();
 
     station_ = std::make_unique<Station>(world_, models_);
     SceneNode& podNode = world_.createChild("pod");
@@ -541,7 +547,7 @@ Lighting Game::buildLighting() const
     station_->appendLights(lighting.pointLights);
     const GameState state = stateMachine_.current();
     if (state == GameState::Flight || state == GameState::Docking) {
-        lighting.pointLights.push_back({pod_->worldPosition() + pod_->forward() * 4.0f, {0.9f, 0.95f, 1.0f}, 6.0f, 45.0f});
+        lighting.pointLights.push_back({pod_->worldPosition() + pod_->forward() * 4.0f, {0.9f, 0.95f, 1.0f}, 1.2f, 45.0f});
     }
     if (state == GameState::Eva && eva_.isRepairing()) {
         const glm::vec3 tip = glm::vec3(eva_.toolWorldMatrix(station_->deck(), timer_.elapsedSeconds())
@@ -571,7 +577,9 @@ void Game::renderScene()
     lastPointLightCount_ = static_cast<int>(lighting.pointLights.size());
     queueGuideLines();
 
+    renderShadows(lighting);
     const glm::ivec2 framebuffer = window_.framebufferSize();
+    postProcess_->beginScene(framebuffer);
     renderer_->clear(framebuffer);
     if (!stereo_) {
         renderView(camera_, glm::ivec2(0), framebuffer, lighting);
@@ -587,6 +595,28 @@ void Game::renderScene()
         }
     }
     renderer_->clearDebugLines();
+    postProcess_->endScene();
+}
+
+void Game::renderShadows(const Lighting& lighting)
+{
+    glm::vec3 center(0.0f, 0.0f, 8.0f);
+    float radius = kMenuShadowRadius;
+    const GameState state = stateMachine_.current();
+    if (state == GameState::Eva) {
+        center = station_->deck().localToWorldPoint(kDeckShadowFocus);
+        radius = kEvaShadowRadius;
+    } else if (state == GameState::Flight || state == GameState::Docking) {
+        center = camera_.position() + camera_.forward() * kFlightShadowRadius * 0.7f;
+        radius = kFlightShadowRadius;
+    }
+    renderer_->beginShadowPass(center, radius, lighting.sun.direction);
+    world_.visit([this](const SceneNode& node, const glm::mat4& worldMatrix) {
+        if (node.model() != nullptr && &node != planet_) {
+            renderer_->drawModelShadow(*node.model(), worldMatrix);
+        }
+    });
+    renderer_->endShadowPass();
 }
 
 void Game::queueGuideLines()

@@ -16,6 +16,7 @@ class SceneNode;
 struct StationCollider {
     const SceneNode* node = nullptr;
     Aabb localBox;
+    bool softCapture = false;
 };
 
 class Station {

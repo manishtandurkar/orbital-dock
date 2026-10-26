@@ -5,6 +5,7 @@
 #include "render/Light.h"
 #include "render/Mesh.h"
 #include "render/Shader.h"
+#include "render/ShadowMap.h"
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -26,6 +27,9 @@ class Renderer {
 public:
     Renderer();
 
+    void beginShadowPass(const glm::vec3& center, float radius, const glm::vec3& lightDirection);
+    void drawModelShadow(const Model& model, const glm::mat4& world);
+    void endShadowPass();
     void clear(const glm::ivec2& framebufferSize);
     void beginView(const Camera& camera, const glm::ivec2& viewportOrigin, const glm::ivec2& viewportSize, const Lighting& lighting);
     void drawModel(const Model& model, const glm::mat4& world, const DrawStyle& style = {});
@@ -46,6 +50,9 @@ private:
     Shader skyboxShader_;
     Shader lineShader_;
     Shader particleShader_;
+    Shader shadowShader_;
+    ShadowMap shadowMap_;
+    bool shadowsReady_ = false;
     Cubemap sky_;
     Mesh skyCube_;
     DebugLines debugLines_;

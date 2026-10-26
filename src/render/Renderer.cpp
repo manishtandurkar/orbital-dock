@@ -17,7 +17,9 @@ namespace {
 
 constexpr int kDiffuseTextureUnit = 0;
 constexpr int kSkyTextureUnit = 1;
-constexpr float kSkyBrightness = 1.0f;
+constexpr int kShadowTextureUnit = 2;
+constexpr int kShadowResolution = 2048;
+constexpr float kSkyBrightness = 1.4f;
 
 std::string pointLightUniform(int index, const char* field)
 {
@@ -31,6 +33,8 @@ Renderer::Renderer()
     , skyboxShader_("shaders/skybox.vert", "shaders/skybox.frag")
     , lineShader_("shaders/debug_line.vert", "shaders/debug_line.frag")
     , particleShader_("shaders/particle.vert", "shaders/particle.frag")
+    , shadowShader_("shaders/shadow_depth.vert", "shaders/shadow_depth.frag")
+    , shadowMap_(kShadowResolution)
     , sky_("textures/sky_")
     , skyCube_(Mesh::createUnitCube())
 {
@@ -43,9 +47,40 @@ Renderer::Renderer()
 
     litShader_.use();
     litShader_.setInt("uDiffuseMap", kDiffuseTextureUnit);
+    litShader_.setInt("uShadowMap", kShadowTextureUnit);
+    litShader_.setFloat("uShadowTexelSize", 1.0f / static_cast<float>(kShadowResolution));
     skyboxShader_.use();
     skyboxShader_.setInt("uSky", kSkyTextureUnit);
     gldebug::checkErrors("Renderer::Renderer");
+}
+
+void Renderer::beginShadowPass(const glm::vec3& center, float radius, const glm::vec3& lightDirection)
+{
+    shadowMap_.focus(center, radius, lightDirection);
+    shadowMap_.bindForWriting();
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(2.0f, 4.0f);
+    shadowShader_.use();
+    shadowShader_.setMat4("uLightSpace", shadowMap_.lightSpaceMatrix());
+}
+
+void Renderer::drawModelShadow(const Model& model, const glm::mat4& world)
+{
+    shadowShader_.setMat4("uModel", world);
+    for (const Model::Part& part : model.parts()) {
+        part.mesh.draw();
+    }
+}
+
+void Renderer::endShadowPass()
+{
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glEnable(GL_CULL_FACE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    shadowsReady_ = true;
 }
 
 void Renderer::clear(const glm::ivec2& framebufferSize)
@@ -69,6 +104,10 @@ void Renderer::beginView(const Camera& camera, const glm::ivec2& viewportOrigin,
     litShader_.use();
     litShader_.setMat4("uViewProjection", projection_ * view_);
     litShader_.setVec3("uViewPosition", camera.position());
+    litShader_.setMat4("uLightSpace", shadowMap_.lightSpaceMatrix());
+    litShader_.setBool("uShadowsEnabled", shadowsReady_);
+    shadowMap_.bindTexture(kShadowTextureUnit);
+    glActiveTexture(GL_TEXTURE0);
     applyLighting(lighting);
 }
 
@@ -79,7 +118,8 @@ void Renderer::applyLighting(const Lighting& lighting)
     litShader_.setVec3("uSun.color", lighting.sun.color);
     litShader_.setFloat("uSun.intensity", lighting.sun.intensity);
     litShader_.setVec3("uAmbientColor", lighting.ambientColor);
-    litShader_.setFloat("uExposure", lighting.exposure);
+    litShader_.setVec3("uFillDirection", lighting.fillDirection);
+    litShader_.setVec3("uFillColor", lighting.fillColor);
 
     const int count = std::min(static_cast<int>(lighting.pointLights.size()), Lighting::kMaxPointLights);
     litShader_.setInt("uPointLightCount", count);

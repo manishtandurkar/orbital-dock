@@ -7,10 +7,12 @@ layout(location = 2) in vec2 aUv;
 uniform mat4 uModel;
 uniform mat3 uNormalMatrix;
 uniform mat4 uViewProjection;
+uniform mat4 uLightSpace;
 
 out vec3 vWorldPosition;
 out vec3 vNormal;
 out vec2 vUv;
+out vec4 vLightSpacePosition;
 
 void main()
 {
@@ -18,5 +20,6 @@ void main()
     vWorldPosition = worldPosition.xyz;
     vNormal = uNormalMatrix * aNormal;
     vUv = aUv;
+    vLightSpacePosition = uLightSpace * worldPosition;
     gl_Position = uViewProjection * worldPosition;
 }

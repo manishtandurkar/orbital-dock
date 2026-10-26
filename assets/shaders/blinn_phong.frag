@@ -18,13 +18,18 @@ struct PointLight {
 in vec3 vWorldPosition;
 in vec3 vNormal;
 in vec2 vUv;
+in vec4 vLightSpacePosition;
 
 uniform DirectionalLight uSun;
 uniform PointLight uPointLights[kMaxPointLights];
 uniform int uPointLightCount;
 uniform vec3 uAmbientColor;
 uniform vec3 uViewPosition;
-uniform float uExposure;
+uniform vec3 uFillDirection;
+uniform vec3 uFillColor;
+uniform bool uShadowsEnabled;
+uniform sampler2DShadow uShadowMap;
+uniform float uShadowTexelSize;
 
 uniform vec3 uDiffuseColor;
 uniform vec3 uSpecularColor;
@@ -54,6 +59,27 @@ vec3 blinnPhong(vec3 normal, vec3 viewDirection, vec3 lightDirection, vec3 radia
     return radiance * (albedo * diffuseTerm + uSpecularColor * specularTerm * energyNormalisation * 0.25);
 }
 
+float sunVisibility(vec3 normal, vec3 sunDirection)
+{
+    if (!uShadowsEnabled) {
+        return 1.0;
+    }
+    vec3 projected = vLightSpacePosition.xyz / vLightSpacePosition.w * 0.5 + 0.5;
+    if (projected.x <= 0.0 || projected.x >= 1.0 || projected.y <= 0.0 || projected.y >= 1.0 || projected.z >= 1.0) {
+        return 1.0;
+    }
+    float slope = 1.0 - max(dot(normal, sunDirection), 0.0);
+    float bias = 0.0008 + 0.0025 * slope;
+    float lit = 0.0;
+    for (int x = -1; x <= 1; ++x) {
+        for (int y = -1; y <= 1; ++y) {
+            vec2 offset = vec2(float(x), float(y)) * uShadowTexelSize;
+            lit += texture(uShadowMap, vec3(projected.xy + offset, projected.z - bias));
+        }
+    }
+    return lit / 9.0;
+}
+
 float rangeAttenuation(float distanceToLight, float range)
 {
     float ratio = distanceToLight / range;
@@ -81,7 +107,9 @@ void main()
 
         color = toLinear(uAmbientColor) * albedo;
         vec3 sunDirection = normalize(-uSun.direction);
-        color += blinnPhong(normal, viewDirection, sunDirection, toLinear(uSun.color) * uSun.intensity, albedo);
+        float sunlight = sunVisibility(normal, sunDirection);
+        color += blinnPhong(normal, viewDirection, sunDirection, toLinear(uSun.color) * uSun.intensity, albedo) * sunlight;
+        color += albedo * toLinear(uFillColor) * max(dot(normal, -normalize(uFillDirection)), 0.0);
 
         for (int i = 0; i < uPointLightCount && i < kMaxPointLights; ++i) {
             vec3 toLight = uPointLights[i].position - vWorldPosition;
@@ -103,6 +131,5 @@ void main()
         }
     }
 
-    vec3 mapped = vec3(1.0) - exp(-color * uExposure);
-    fragColor = vec4(pow(mapped, vec3(1.0 / 2.2)), 1.0);
+    fragColor = vec4(color, 1.0);
 }

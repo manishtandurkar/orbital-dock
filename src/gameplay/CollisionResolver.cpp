@@ -22,11 +22,13 @@ constexpr float kMinDamagingSpeed = 0.6f;
 constexpr float kMinStationDamagingSpeed = 1.5f;
 constexpr float kMaxSingleImpactDamage = 22.0f;
 constexpr float kStationBroadPhaseRadius = 80.0f;
+constexpr float kSoftCaptureMaxSpeed = 2.0f;
 
 struct StationContact {
     bool hit = false;
     glm::vec3 normal{0.0f};
     float penetration = 0.0f;
+    bool softCapture = false;
 };
 
 StationContact deepestStationContact(const Sphere& worldSphere, const Station& station)
@@ -40,6 +42,7 @@ StationContact deepestStationContact(const Sphere& worldSphere, const Station& s
             deepest.hit = true;
             deepest.penetration = contact.penetration;
             deepest.normal = collider.node->localToWorldDirection(contact.normal);
+            deepest.softCapture = collider.softCapture;
         }
     }
     for (const Sphere& sphere : station.worldSphereColliders()) {
@@ -48,6 +51,7 @@ StationContact deepestStationContact(const Sphere& worldSphere, const Station& s
             deepest.hit = true;
             deepest.penetration = contact.penetration;
             deepest.normal = contact.normal;
+            deepest.softCapture = false;
         }
     }
     return deepest;
@@ -125,6 +129,10 @@ void CollisionResolver::resolvePodVsStation(Pod& pod, const Station& station, st
     const glm::vec3 relativeVelocity = pod.velocity() - surfaceVelocity;
     const float closingSpeed = -glm::dot(relativeVelocity, contact.normal);
     if (closingSpeed <= 0.0f) {
+        return;
+    }
+    if (contact.softCapture && closingSpeed < kSoftCaptureMaxSpeed) {
+        pod.applyImpulse(contact.normal * closingSpeed);
         return;
     }
     pod.applyImpulse(contact.normal * closingSpeed * (1.0f + kStationRestitution));

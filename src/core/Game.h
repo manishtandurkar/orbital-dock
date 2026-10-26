@@ -24,6 +24,7 @@
 class DebrisField;
 class ImGuiLayer;
 class ParticleSystem;
+class PostProcess;
 class Pod;
 class Station;
 
@@ -64,6 +65,7 @@ private:
     void renderScene();
     void renderView(const Camera& camera, const glm::ivec2& viewportOrigin, const glm::ivec2& viewportSize, const Lighting& lighting);
     void queueGuideLines();
+    void renderShadows(const Lighting& lighting);
     void renderDebugVolumes();
     void renderUi();
     Lighting buildLighting() const;
@@ -78,6 +80,7 @@ private:
     std::unique_ptr<Renderer> renderer_;
     std::unique_ptr<ImGuiLayer> imgui_;
     std::unique_ptr<ParticleSystem> particles_;
+    std::unique_ptr<PostProcess> postProcess_;
     AudioEngine audio_;
     ModelLibrary models_;
     SceneNode world_;

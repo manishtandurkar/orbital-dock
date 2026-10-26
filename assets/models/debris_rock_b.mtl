@@ -1,9 +1,10 @@
 newmtl rock_dark
 Ka 0.000 0.000 0.000
-Kd 0.250 0.230 0.220
+Kd 0.420 0.400 0.380
 Ks 0.050 0.050 0.050
 Ns 6.0
 Ke 0.000 0.000 0.000
 d 1.0
 illum 2
+map_Kd ../textures/rock.png
 

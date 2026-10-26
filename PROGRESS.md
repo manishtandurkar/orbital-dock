@@ -4,7 +4,7 @@ This file records what has been built so far and what is left. Keep it updated a
 
 ## Plan
 
-Six milestones, each committed and pushed on branch `claude/magical-cannon-9rcwph`:
+Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 
 1. Engine skeleton (CMake, window, input, timer, state machine, shader, mesh, camera)
 2. Models and lighting (Assimp OBJ loading, textures, Blinn-Phong with sun + point lights, skybox, scene graph)
@@ -23,11 +23,24 @@ Six milestones, each committed and pushed on branch `claude/magical-cannon-9rcwp
 
 ## Status
 
-### Done
-- M1 engine skeleton: `Window`, `Input` (polled key/mouse state with edge detection), `Timer`, `GameStateMachine`, `Game` loop, `Shader`, `Mesh`, `Camera`, `GlDebug::checkErrors`, Blinn-Phong shaders. Renders a lit rotating cube.
+### Done (verified on Linux under Xvfb, full mission playable end to end)
+- M1 engine skeleton: `Window`, `Input` (polled state + GLFW key callback latch so quick taps register), `Timer`, `GameStateMachine`, `Shader`, `Mesh`, `Camera`, `gldebug::checkErrors`.
+- M2 rendering: Assimp `Model` + `ModelLibrary`, `Texture`, `Cubemap` starfield skybox, Blinn-Phong (`assets/shaders/blinn_phong.*`) with 1 sun + up to 8 point lights, tone mapping, `DebugLines`, `SceneNode` hierarchy with reparenting.
+- M3 flight: `Pod` thrusters (W/S, A/D yaw, Q/E roll, R/F up/down, mouse pitch/yaw, Space brake), `DebrisField` (72 pieces, drifting/tumbling/despawned, a "hunter" piece aimed at the pod every 7 s), `CollisionResolver` (sphere-sphere, sphere-AABB in each station part's local space, impulse response, hull damage), `ChaseCamera` with screen shake and V toggles cockpit view.
+- M4 docking: `Station` spins about Z at 3 deg/s; docking arm folds out (-75 deg to 0) when the docking zone (90 m) is entered; `DockingCheck` (distance 1.5 m, rel speed 1.2 m/s, alignment 10 deg, roll 15 deg, hold 1 s). With Tab assist on, the pod's angular damping matches the station spin so roll stays aligned. On lock the pod is reparented under the port node and 4 clamps close.
+- M5 EVA: `EvaController` first-person walk on the deck on top of the hub (station-local, so it rotates with the station), hold E for 3 s at the damaged panel, 75 s life support (`Mission`). Win/Lose screens.
+- M6 (partial): ImGui `Hud`, `Menu` (main, pause, end), `AudioEngine` (miniaudio, 8 placeholder WAVs in `assets/audio`, disables itself without a device).
+- Debug: F1 overlay (FPS, collision wireframes); F2 while F1 is on jumps the pod 20 m in front of the port, aligned, for testing/demo rehearsal.
 
-### Next
-- M2 onward (see plan above).
+### Not yet done / next
+- README.md (build, controls, how to replace models from Blender).
+- Not yet re-tested: pause menu and life-support loss path (code exists). Hull-destroyed loss path not tested.
+- macOS and Windows builds have never been compiled; do this first on both laptops.
+- Replace placeholder OBJ models with Blender models (keep the file names in `assets/models`; export OBJ with Forward -Z, Up Y, include normals and UVs, write materials). Station layout constants (hub radius 6, deck top y=6.6, arm base z=13, arm length 10, port docking offset 4.4) are in `src/gameplay/Station.cpp` and colliders there must match the new models.
+- Optional: stereo side-by-side view, particle sparks, tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`).
+
+### Notes
+- An old remote branch `claude/magical-cannon-9rcwph` points at the same commit; it could not be deleted from the cloud session and can be deleted on GitHub.
 
 ## How Claude verified on Linux
 

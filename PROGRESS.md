@@ -25,7 +25,7 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 
 ### Done (verified on Linux under Xvfb, full mission playable end to end)
 - M1 engine skeleton: `Window`, `Input` (polled state + GLFW key callback latch so quick taps register), `Timer`, `GameStateMachine`, `Shader`, `Mesh`, `Camera`, `gldebug::checkErrors`.
-- M2 rendering: Assimp `Model` + `ModelLibrary`, `Texture`, `Cubemap` starfield skybox, Blinn-Phong (`assets/shaders/blinn_phong.*`) with 1 sun + up to 8 point lights, tone mapping, `DebugLines`, `SceneNode` hierarchy with reparenting.
+- M2 rendering: Assimp `Model` + `ModelLibrary`, `Texture`, `Cubemap` starfield skybox, Blinn-Phong (`assets/shaders/blinn_phong.*`) with 1 sun + up to 8 point lights (tone mapping now lives in the post-process pass), `DebugLines`, `SceneNode` hierarchy with reparenting.
 - M3 flight: `Pod` thrusters (W/S, A/D yaw, Q/E roll, R/F up/down, mouse pitch/yaw, Space brake), `DebrisField` (72 pieces, drifting/tumbling/despawned, a "hunter" piece aimed at the pod every 7 s), `CollisionResolver` (sphere-sphere, sphere-AABB in each station part's local space, impulse response, hull damage), `ChaseCamera` with screen shake and V toggles cockpit view.
 - M4 docking: `Station` spins about Z at 3 deg/s; docking arm folds out (-75 deg to 0) when the docking zone (90 m) is entered; `DockingCheck` (distance 1.5 m, rel speed 1.2 m/s, alignment 10 deg, roll 15 deg, hold 1 s). With Tab assist on, the pod's angular damping matches the station spin so roll stays aligned. On lock the pod is reparented under the port node and 4 clamps close.
 - M5 EVA: `EvaController` first-person walk on the deck on top of the hub (station-local, so it rotates with the station), hold E for 3 s at the damaged panel, 75 s life support (`Mission`). Win/Lose screens.
@@ -56,10 +56,53 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 ### Not yet done / next
 - macOS and Windows builds have never been compiled; do this first on both laptops.
 - Replace placeholder OBJ models with Blender models (keep the file names in `assets/models`; export OBJ with Forward -Z, Up Y, include normals and UVs, write materials). Station layout constants (hub radius 6, deck top y=6.6, arm base z=13, arm length 10, port docking offset 4.4) are in `src/gameplay/Station.cpp` and colliders there must match the new models.
-- Optional: stereo side-by-side view, tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`).
+- Optional: tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`), re-record the demo video including EVA and the win screen.
+- Merge `feature/core-gameplay` into `main` once both laptops build and run it.
 
 ### Notes
 - An old remote branch `claude/magical-cannon-9rcwph` points at the same commit; it could not be deleted from the cloud session and can be deleted on GitHub.
+
+## Testing on your own laptops (start here)
+
+### 1. Get the code
+```
+git clone https://github.com/manishtandurkar/orbital-dock.git
+cd orbital-dock
+git checkout feature/core-gameplay
+```
+The first configure downloads GLFW, GLM, Assimp and ImGui, so it needs internet. Building Assimp takes a few minutes the first time only.
+
+### 2. macOS
+Install the Xcode command line tools (`xcode-select --install`) and CMake (`brew install cmake`). Then:
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/orbital_dock
+```
+
+### 3. Windows
+Install Visual Studio 2022 with the "Desktop development with C++" workload (it includes CMake). In a "Developer PowerShell for VS 2022":
+```
+cmake -S . -B build
+cmake --build build --config Release
+build\Release\orbital_dock.exe
+```
+
+### 4. What to check (same list on both laptops)
+1. Window opens, main menu shows the station, planet and stars. Controls button expands the list.
+2. Start Mission: fly with W, mouse look, A/D, Q/E, R/F, Space brake, V cockpit view. Debris hits shake the screen and cost hull. Sound plays (thrusters, impacts, ambient hum).
+3. Follow the STATION marker; inside 90 m the arm unfolds and the docking computer appears. Line up and push in gently with Shift + W. Shortcut for rehearsals: F1 then F2 jumps to the approach.
+4. Clamps lock, then EVA: walk with WASD to the sparking panel, hold E for 3 s. Mission Complete screen.
+5. Lose paths: F1 then F4 four times (hull destroyed), wait out the 75 s oxygen in EVA, or fly more than 800 m away.
+6. Esc pause menu: Resume, Restart, Main Menu, Quit. F3 stereo, F11 fullscreen, F1 shows FPS (target 60).
+7. The terminal prints `State: A -> B` lines on every phase change, useful when reporting bugs.
+
+### 5. If something goes wrong
+- Compile error: paste the full error into Claude Code on that laptop; this file and CLAUDE.md give it the context. Keep fixes cross-platform.
+- "Cannot open asset" / black screen: run the exe from the build folder and check `assets/` was copied next to it (CMake does this after every build).
+- Low FPS on an integrated GPU: lower `kShadowResolution` in `src/render/Renderer.cpp` (2048 to 1024) and `kSamples` in `src/render/PostProcess.cpp` (4 to 2).
+- No sound: the main menu says so when no audio device is found; check the system output device.
+- Docking too hard for the live demo: widen `DockingTolerance` in `src/physics/DockingCheck.h`.
 
 ## How Claude verified on Linux
 

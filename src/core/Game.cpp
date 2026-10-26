@@ -1,5 +1,7 @@
 #include "core/Game.h"
 
+#include "core/FrameRecorder.h"
+#include "gameplay/Debris.h"
 #include "gameplay/DebrisField.h"
 #include "gameplay/Pod.h"
 #include "gameplay/Station.h"
@@ -51,6 +53,11 @@ constexpr glm::vec3 kDeckShadowFocus{0.0f, 6.6f, -2.0f};
 constexpr float kDebugImpactDamage = 25.0f;
 constexpr float kMissionAreaWarningRadius = 550.0f;
 constexpr float kFlightEyeSeparation = 0.35f;
+constexpr int kDemoFramesPerSecond = 60;
+constexpr float kDemoStepSeconds = 1.0f / static_cast<float>(kDemoFramesPerSecond);
+constexpr int kAudioFramesPerDemoStep = AudioEngine::kSampleRate / kDemoFramesPerSecond;
+constexpr float kDemoDebrisSearchMetres = 110.0f;
+constexpr float kDemoDebrisMinAheadMetres = 25.0f;
 
 const glm::vec3 kGuideColor(0.3f, 1.0f, 0.45f);
 const glm::vec4 kImpactSparkColor(1.0f, 0.6f, 0.2f, 1.0f);
@@ -63,10 +70,11 @@ constexpr float kPanelSparkIntervalSeconds = 0.35f;
 
 }
 
-Game::Game()
+Game::Game(const GameOptions& options)
     : window_(kWindowWidth, kWindowHeight, "Orbital Dock")
     , input_(window_.handle())
     , stateMachine_(GameState::Menu)
+    , audio_(!options.recordDirectory.empty())
     , world_("world")
 {
     renderer_ = std::make_unique<Renderer>();
@@ -92,6 +100,15 @@ Game::Game()
 
     resetMission();
     audio_.setLoop(Sound::AmbientHum, true, 0.35f);
+
+    if (options.demo || !options.recordDirectory.empty()) {
+        demo_ = std::make_unique<DemoDirector>();
+        input_.enableScripting();
+        timer_.useFixedStep(kDemoStepSeconds);
+    }
+    if (!options.recordDirectory.empty()) {
+        recorder_ = std::make_unique<FrameRecorder>(options.recordDirectory);
+    }
 }
 
 Game::~Game() = default;
@@ -100,15 +117,98 @@ void Game::run()
 {
     while (!window_.shouldClose()) {
         window_.pollEvents();
+        if (demo_) {
+            prepareDemoFrame();
+        }
         input_.update();
         const float deltaSeconds = timer_.tick();
         handleGlobalInput();
+        if (demo_) {
+            applyDemoActions();
+        }
         update(deltaSeconds);
+        if (demo_) {
+            applyDemoCamera();
+        }
         if (!window_.isMinimized()) {
             render();
         }
+        if (recorder_) {
+            recordFrame();
+        }
         window_.swapBuffers();
     }
+    if (recorder_) {
+        recorder_->finish();
+    }
+}
+
+void Game::prepareDemoFrame()
+{
+    demoCommands_ = demo_->update(buildDemoSnapshot(), kDemoStepSeconds);
+    input_.setScriptedFrame(demoCommands_.keysDown, demoCommands_.mouseDelta);
+}
+
+void Game::applyDemoActions()
+{
+    if (demoCommands_.startMission && stateMachine_.current() == GameState::Menu) {
+        applyMenuAction(MenuAction::Start);
+    }
+    if (demoCommands_.quit) {
+        window_.requestClose();
+    }
+}
+
+void Game::applyDemoCamera()
+{
+    const std::optional<DemoShot> shot = demo_->cameraShot(pod_->worldPosition());
+    if (shot) {
+        camera_.lookAt(shot->eye, shot->target, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+}
+
+void Game::recordFrame()
+{
+    recorder_->captureFrame(window_.framebufferSize());
+    audio_.renderOffline(kAudioFramesPerDemoStep, recorder_->audioBuffer());
+}
+
+DemoSnapshot Game::buildDemoSnapshot() const
+{
+    DemoSnapshot snapshot;
+    snapshot.state = stateMachine_.current();
+    snapshot.podPosition = pod_->worldPosition();
+    snapshot.podVelocity = pod_->velocity();
+    snapshot.podForward = pod_->forward();
+    snapshot.podUp = pod_->up();
+    snapshot.podRight = pod_->right();
+    snapshot.podAngularVelocity = pod_->angularVelocityWorld();
+    snapshot.hullFraction = pod_->hullFraction();
+    snapshot.docked = docked_;
+    snapshot.cockpitView = chaseCamera_.view() == ChaseCamera::View::Cockpit;
+    snapshot.dockingTarget = station_->approachTargetWorld();
+    snapshot.dockingAxis = station_->spinAxisWorld();
+    snapshot.dockingUp = station_->approachUpWorld();
+    snapshot.stationSpinRadiansPerSecond = station_->spinRadiansPerSecond();
+    snapshot.closingDebris = debris_->countClosingOn(pod_->position(), pod_->velocity(), kProximityWarningDistance);
+    float nearestAhead = kDemoDebrisSearchMetres;
+    for (const Debris& debris : debris_->pieces()) {
+        const float ahead = glm::dot(debris.position() - pod_->position(), pod_->forward());
+        if (debris.isActive() && ahead > kDemoDebrisMinAheadMetres && ahead < nearestAhead) {
+            nearestAhead = ahead;
+            snapshot.debrisAhead = true;
+            snapshot.debrisAheadPosition = debris.position();
+        }
+    }
+    snapshot.cameraPosition = camera_.position();
+    snapshot.cameraForward = camera_.forward();
+    snapshot.cameraRight = camera_.right();
+    snapshot.cameraUp = camera_.up();
+    snapshot.panelPosition = station_->repairPanel().localToWorldPoint(glm::vec3(0.0f));
+    snapshot.canInteract = eva_.canInteract();
+    snapshot.repairing = eva_.isRepairing();
+    snapshot.repaired = mission_.isRepaired();
+    return snapshot;
 }
 
 bool Game::isPlayableState() const
@@ -322,6 +422,9 @@ void Game::updateParticles(float deltaSeconds)
 
 void Game::updateCursorCapture()
 {
+    if (demo_) {
+        return;
+    }
     const bool capture = isPlayableState() && !stateMachine_.isPaused();
     if (capture != window_.isCursorCaptured()) {
         window_.setCursorCaptured(capture);
@@ -754,7 +857,9 @@ void Game::renderUi()
         HudData hudData = buildHudData();
         hudData.paused = stateMachine_.isPaused();
         hudData.stereo = stereo_;
-        hud_.draw(hudData);
+        if (!demoCommands_.hideHud) {
+            hud_.draw(hudData);
+        }
         if (stateMachine_.isPaused()) {
             action = menu_.drawPauseMenu();
         }
@@ -765,6 +870,9 @@ void Game::renderUi()
     }
     if (showDebug_) {
         sceneGraphPanel_.draw(world_);
+    }
+    if (demo_) {
+        demoCaption_.draw(demoCommands_.captionTitle, demoCommands_.captionText, demoCommands_.captionAlpha);
     }
     imgui_->endFrame();
     gldebug::checkErrors("Game::renderUi");

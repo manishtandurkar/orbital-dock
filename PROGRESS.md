@@ -50,7 +50,12 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 - Mission area boundary (warning at 550 m, fail at 800 m). Esc no longer quits from the main menu.
 - F3 stereo, F11 fullscreen, F4 simulated hit (debug), scene graph panel in F1 overlay.
 - State transitions are printed to stdout (`State: Docking -> EVA`) for scripted testing.
-- `media/orbital_dock_playthrough.mp4`: recording of menu, flight and docking (EVA part not included).
+- `media/orbital_dock_playthrough.mp4`: old silent recording of menu, flight and docking with the placeholder models.
+
+### Demo mode and video (done)
+- `--demo` runs an autopilot (`core/DemoDirector`) that plays a full mission through scripted keyboard/mouse input (`Input::setScriptedFrame`), with cinematic camera shots (station reveal, docking close-up) and lower-third captions (`ui/DemoCaption`). Flight guidance is a thrust-vector controller on the station's spin axis (`Station::approachTargetWorld`), so it works while the arm is still folded.
+- `--record-demo <dir>` adds a fixed 60 fps clock (`Timer::useFixedStep`), frame capture (`core/FrameRecorder`, raw RGB into a named pipe) and offline audio (`AudioEngine(true)`, miniaudio with no device). `tools/record_demo.sh` drives ffmpeg. The run is deterministic.
+- `media/orbital_dock_demo.mp4`: 83 s, 2560x1440, 60 fps, H.264 + AAC, about 90 MB (the 110 MB recording re-encoded once at CRF 18, SSIM 0.997 against the original, to fit under GitHub's 100 MB file limit). New recordings come out near 110 MB, so re-encode them the same way before committing.
 
 ### End-to-end test results (Linux, Xvfb, real keyboard/mouse via xdotool)
 - Menu, Controls toggle, Start, pause/resume, Restart, Main Menu, Quit: pass.

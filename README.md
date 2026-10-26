@@ -6,7 +6,16 @@ Fly a maintenance pod through a drifting debris field, dock with a slowly rotati
 
 ## Demo video
 
-`media/orbital_dock_playthrough.mp4` is a 2-minute recording of the main menu, the flight through the debris field and the docking approach up to clamp lock (software-rendered on Linux, no audio).
+`media/orbital_dock_demo.mp4` is an 83-second recording of a complete mission (menu, flight with a debris hit and cockpit view, station reveal, docking with the clamps closing, EVA repair and the win screen) at 2560x1440, 60 fps, with the game's own sound and captions explaining each feature. `media/orbital_dock_playthrough.mp4` is an older silent recording made before the realistic models.
+
+The demo is played by an autopilot built into the game, so it can be re-recorded at any time:
+
+```
+./build/orbital_dock --demo                      # watch the autopilot play
+tools/record_demo.sh media/orbital_dock_demo.mp4  # record it (macOS/Linux, needs ffmpeg)
+```
+
+With `--record-demo <folder>` the game runs on a fixed 60 fps clock, so every run is identical, streams raw frames into `<folder>/video.fifo` and writes its sound mix to `<folder>/audio.wav`; `tools/record_demo.sh` creates the pipe, encodes with ffmpeg and muxes the audio.
 
 ## Build and run
 

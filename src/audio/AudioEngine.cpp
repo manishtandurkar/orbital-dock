@@ -49,9 +49,15 @@ struct AudioEngine::Impl {
     std::array<bool, kSoundCount> loopReady{};
     std::array<std::string, kSoundCount> paths;
 
-    Impl()
+    explicit Impl(bool offline)
     {
-        if (ma_engine_init(nullptr, &engine) != MA_SUCCESS) {
+        ma_engine_config config = ma_engine_config_init();
+        if (offline) {
+            config.noDevice = MA_TRUE;
+            config.channels = AudioEngine::kChannels;
+            config.sampleRate = AudioEngine::kSampleRate;
+        }
+        if (ma_engine_init(&config, &engine) != MA_SUCCESS) {
             std::cerr << "Audio disabled: no playback device available\n";
             return;
         }
@@ -84,8 +90,8 @@ struct AudioEngine::Impl {
     Impl& operator=(const Impl&) = delete;
 };
 
-AudioEngine::AudioEngine()
-    : impl_(std::make_unique<Impl>())
+AudioEngine::AudioEngine(bool offline)
+    : impl_(std::make_unique<Impl>(offline))
 {
 }
 
@@ -149,4 +155,15 @@ void AudioEngine::setMasterVolume(float volume)
     if (impl_->engineReady) {
         ma_engine_set_volume(&impl_->engine, volume);
     }
+}
+
+void AudioEngine::renderOffline(int frameCount, std::vector<float>& interleavedOut)
+{
+    const size_t start = interleavedOut.size();
+    interleavedOut.resize(start + static_cast<size_t>(frameCount) * kChannels, 0.0f);
+    if (!impl_->engineReady) {
+        return;
+    }
+    ma_uint64 framesRead = 0;
+    ma_engine_read_pcm_frames(&impl_->engine, interleavedOut.data() + start, static_cast<ma_uint64>(frameCount), &framesRead);
 }

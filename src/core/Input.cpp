@@ -50,12 +50,37 @@ void Input::onKeyEvent(GLFWwindow* window, int key, int, int action, int)
     }
 }
 
+void Input::enableScripting()
+{
+    scripted_ = true;
+}
+
+void Input::setScriptedFrame(const std::vector<int>& keysDown, const glm::vec2& mouseDelta)
+{
+    scriptedKeys_.fill(false);
+    for (const int key : keysDown) {
+        if (isValidKey(key, kKeyCount)) {
+            scriptedKeys_[key] = true;
+        }
+    }
+    scriptedMouseDelta_ = mouseDelta;
+}
+
 void Input::update()
 {
     previousKeys_ = currentKeys_;
     previousButtons_ = currentButtons_;
     pressedThisFrame_ = pressLatch_;
     pressLatch_.fill(false);
+
+    if (scripted_) {
+        pressedThisFrame_.fill(false);
+        currentKeys_ = scriptedKeys_;
+        currentButtons_.fill(false);
+        mouseDelta_ = skipNextMouseDelta_ ? glm::vec2(0.0f) : scriptedMouseDelta_;
+        skipNextMouseDelta_ = false;
+        return;
+    }
 
     for (int key = kFirstValidKey; key <= GLFW_KEY_LAST; ++key) {
         if (isGlfwKeyCode(key)) {

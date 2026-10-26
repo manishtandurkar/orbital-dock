@@ -47,6 +47,8 @@ public:
     glm::vec3 dockingTargetWorld() const;
     glm::vec3 dockingAxisWorld() const;
     glm::vec3 dockingUpWorld() const;
+    glm::vec3 approachTargetWorld() const;
+    glm::vec3 approachUpWorld() const;
     glm::mat4 dockedPodLocalTransform() const;
 
     const std::vector<StationCollider>& colliders() const;

@@ -7,15 +7,26 @@
 Timer::Timer()
     : startTime_(glfwGetTime())
     , lastTime_(startTime_)
+    , lastRealTime_(startTime_)
 {
+}
+
+void Timer::useFixedStep(float stepSeconds)
+{
+    fixedStepSeconds_ = stepSeconds;
 }
 
 float Timer::tick()
 {
     const double now = glfwGetTime();
-    const float frameSeconds = static_cast<float>(now - lastTime_);
-    lastTime_ = now;
+    const float frameSeconds = static_cast<float>(now - lastRealTime_);
+    lastRealTime_ = now;
     smoothedFrameSeconds_ = smoothedFrameSeconds_ * 0.95f + frameSeconds * 0.05f;
+    if (fixedStepSeconds_ > 0.0f) {
+        lastTime_ += fixedStepSeconds_;
+        return fixedStepSeconds_;
+    }
+    lastTime_ = now;
     return std::clamp(frameSeconds, 0.0f, kMaxFrameSeconds);
 }
 

@@ -109,6 +109,8 @@ set(ORBITAL_DOCK_SOURCES
     src/core/Timer.cpp
     src/core/GameStateMachine.cpp
     src/core/Game.cpp
+    src/core/DemoDirector.cpp
+    src/core/FrameRecorder.cpp
     src/render/GlDebug.cpp
     src/render/Shader.cpp
     src/render/Mesh.cpp
@@ -138,6 +140,7 @@ set(ORBITAL_DOCK_SOURCES
     src/ui/Hud.cpp
     src/ui/Menu.cpp
     src/ui/SceneGraphPanel.cpp
+    src/ui/DemoCaption.cpp
 )
 
 add_executable(orbital_dock ${ORBITAL_DOCK_SOURCES})

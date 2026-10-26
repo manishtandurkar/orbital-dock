@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio/AudioEngine.h"
+#include "core/DemoDirector.h"
 #include "core/GameStateMachine.h"
 #include "core/Input.h"
 #include "core/Timer.h"
@@ -14,23 +15,31 @@
 #include "render/ModelLibrary.h"
 #include "render/Renderer.h"
 #include "scene/SceneNode.h"
+#include "ui/DemoCaption.h"
 #include "ui/Hud.h"
 #include "ui/Menu.h"
 #include "ui/SceneGraphPanel.h"
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
 class DebrisField;
+class FrameRecorder;
 class ImGuiLayer;
 class ParticleSystem;
 class PostProcess;
 class Pod;
 class Station;
 
+struct GameOptions {
+    bool demo = false;
+    std::filesystem::path recordDirectory;
+};
+
 class Game {
 public:
-    Game();
+    explicit Game(const GameOptions& options = GameOptions{});
     ~Game();
 
     Game(const Game&) = delete;
@@ -49,6 +58,11 @@ private:
     void updateAudio();
     void updateCursorCapture();
     void updateParticles(float deltaSeconds);
+    void prepareDemoFrame();
+    void applyDemoActions();
+    void applyDemoCamera();
+    void recordFrame();
+    DemoSnapshot buildDemoSnapshot() const;
 
     void changeState(GameState next);
     void onStateEntered(GameState from, GameState to);
@@ -100,6 +114,10 @@ private:
     Hud hud_;
     Menu menu_;
     SceneGraphPanel sceneGraphPanel_;
+    std::unique_ptr<DemoDirector> demo_;
+    std::unique_ptr<FrameRecorder> recorder_;
+    DemoCommands demoCommands_;
+    DemoCaption demoCaption_;
 
     bool alignmentAssist_ = true;
     bool showDebug_ = false;

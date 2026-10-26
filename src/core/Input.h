@@ -3,6 +3,7 @@
 #include <glm/vec2.hpp>
 
 #include <array>
+#include <vector>
 
 struct GLFWwindow;
 
@@ -16,6 +17,8 @@ public:
 
     void update();
     void resetMouseDelta();
+    void enableScripting();
+    void setScriptedFrame(const std::vector<int>& keysDown, const glm::vec2& mouseDelta);
 
     bool isKeyDown(int key) const;
     bool wasKeyPressed(int key) const;
@@ -42,4 +45,7 @@ private:
     glm::vec2 mousePosition_{0.0f};
     glm::vec2 mouseDelta_{0.0f};
     bool skipNextMouseDelta_ = true;
+    bool scripted_ = false;
+    std::array<bool, kKeyCount> scriptedKeys_{};
+    glm::vec2 scriptedMouseDelta_{0.0f};
 };

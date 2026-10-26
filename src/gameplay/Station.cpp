@@ -319,6 +319,16 @@ glm::vec3 Station::dockingUpWorld() const
     return port_->localToWorldDirection({0.0f, 1.0f, 0.0f});
 }
 
+glm::vec3 Station::approachTargetWorld() const
+{
+    return root_->localToWorldPoint({0.0f, 0.0f, kArmBaseZ + kArmLength + kDockedPodOffset});
+}
+
+glm::vec3 Station::approachUpWorld() const
+{
+    return root_->localToWorldDirection({0.0f, 1.0f, 0.0f});
+}
+
 glm::mat4 Station::dockedPodLocalTransform() const
 {
     return glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, kDockedPodOffset));

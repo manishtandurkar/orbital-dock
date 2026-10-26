@@ -5,6 +5,7 @@
 #include "gameplay/Station.h"
 #include "render/GlDebug.h"
 #include "render/Model.h"
+#include "render/ParticleSystem.h"
 #include "ui/ImGuiLayer.h"
 
 #include <GLFW/glfw3.h>
@@ -37,6 +38,13 @@ constexpr float kBannerFadeSeconds = 0.8f;
 constexpr float kDebugApproachDistance = 20.0f;
 
 const glm::vec3 kGuideColor(0.3f, 1.0f, 0.45f);
+const glm::vec4 kImpactSparkColor(1.0f, 0.6f, 0.2f, 1.0f);
+const glm::vec4 kPanelSparkColor(1.0f, 0.75f, 0.3f, 1.0f);
+const glm::vec4 kArcSparkColor(0.55f, 0.8f, 1.0f, 1.0f);
+const glm::vec4 kExhaustColor(0.35f, 0.6f, 1.0f, 0.8f);
+const glm::vec4 kDockingPuffColor(0.8f, 0.85f, 0.9f, 0.6f);
+constexpr glm::vec3 kPodNozzleOffset{0.0f, 0.0f, 2.8f};
+constexpr float kPanelSparkIntervalSeconds = 0.35f;
 
 }
 
@@ -48,6 +56,7 @@ Game::Game()
 {
     renderer_ = std::make_unique<Renderer>();
     imgui_ = std::make_unique<ImGuiLayer>(window_.handle());
+    particles_ = std::make_unique<ParticleSystem>();
 
     station_ = std::make_unique<Station>(world_, models_);
     SceneNode& podNode = world_.createChild("pod");
@@ -180,6 +189,8 @@ void Game::resetMission()
     dockedSeconds_ = 0.0f;
     winDelaySeconds_ = -1.0f;
     damageFlash_ = 0.0f;
+    panelSparkCooldown_ = 0.0f;
+    particles_->clear();
     lastLockToneStep_ = 0.0f;
     banner_.clear();
     bannerSeconds_ = 0.0f;
@@ -222,7 +233,53 @@ void Game::update(float deltaSeconds)
         updateEva(deltaSeconds);
         break;
     }
+    updateParticles(deltaSeconds);
     updateAudio();
+}
+
+void Game::updateParticles(float deltaSeconds)
+{
+    particles_->update(deltaSeconds);
+
+    panelSparkCooldown_ -= deltaSeconds;
+    if (!mission_.isRepaired() && panelSparkCooldown_ <= 0.0f) {
+        panelSparkCooldown_ = kPanelSparkIntervalSeconds;
+        const SceneNode& panel = station_->repairPanel();
+        ParticleBurst burst;
+        burst.position = panel.localToWorldPoint({0.1f, -0.1f, 0.1f});
+        burst.baseVelocity = panel.localToWorldDirection({0.0f, -0.6f, 1.2f});
+        burst.spreadSpeed = 1.6f;
+        burst.color = kPanelSparkColor;
+        burst.lifeSeconds = 0.5f;
+        burst.size = 0.07f;
+        burst.count = 16;
+        particles_->emit(burst);
+    }
+
+    const GameState state = stateMachine_.current();
+    const bool flying = (state == GameState::Flight || state == GameState::Docking) && !docked_;
+    if (flying && pod_->thrusterLevel() > 0.1f) {
+        ParticleBurst exhaust;
+        exhaust.position = pod_->node().localToWorldPoint(kPodNozzleOffset);
+        exhaust.baseVelocity = pod_->velocity() - pod_->forward() * 9.0f;
+        exhaust.spreadSpeed = 1.2f;
+        exhaust.color = kExhaustColor * pod_->thrusterLevel();
+        exhaust.lifeSeconds = 0.35f;
+        exhaust.size = 0.18f;
+        exhaust.count = 3;
+        particles_->emit(exhaust);
+    }
+
+    if (state == GameState::Eva && eva_.isRepairing()) {
+        ParticleBurst arc;
+        arc.position = glm::vec3(eva_.toolWorldMatrix(station_->deck(), timer_.elapsedSeconds()) * glm::vec4(0.0f, 0.0f, -0.36f, 1.0f));
+        arc.spreadSpeed = 1.5f;
+        arc.color = kArcSparkColor;
+        arc.lifeSeconds = 0.3f;
+        arc.size = 0.03f;
+        arc.count = 4;
+        particles_->emit(arc);
+    }
 }
 
 void Game::updateCursorCapture()
@@ -272,6 +329,15 @@ void Game::handleImpacts()
         chaseCamera_.addShake(std::min(0.35f + impact.damage / 30.0f, 1.0f));
         damageFlash_ = std::min(damageFlash_ + 0.5f + impact.damage / 30.0f, 1.0f);
         audio_.playOneShot(Sound::Impact, std::min(0.4f + impact.damage / 25.0f, 1.0f));
+        ParticleBurst sparks;
+        sparks.position = impact.point;
+        sparks.baseVelocity = pod_->velocity();
+        sparks.spreadSpeed = 4.0f + impact.impactSpeed * 0.3f;
+        sparks.color = kImpactSparkColor;
+        sparks.lifeSeconds = 0.8f;
+        sparks.size = 0.12f;
+        sparks.count = 30 + static_cast<int>(impact.damage * 2.0f);
+        particles_->emit(sparks);
     }
 }
 
@@ -320,6 +386,14 @@ void Game::dockPod()
     station_->setClampsClosed(true);
     chaseCamera_.addShake(0.45f);
     audio_.playOneShot(Sound::DockingClunk, 1.0f);
+    ParticleBurst puff;
+    puff.position = station_->dockingPort().localToWorldPoint({0.0f, 0.0f, 1.2f});
+    puff.spreadSpeed = 2.5f;
+    puff.color = kDockingPuffColor;
+    puff.lifeSeconds = 1.2f;
+    puff.size = 0.3f;
+    puff.count = 60;
+    particles_->emit(puff);
     showBanner("Docked. Clamps engaged.", 3.0f);
 }
 
@@ -448,6 +522,7 @@ void Game::renderScene()
         renderDebugVolumes();
     }
     renderer_->endFrame();
+    renderer_->drawParticles(*particles_);
 }
 
 void Game::renderDebugVolumes()
@@ -540,7 +615,9 @@ void Game::renderUi()
         break;
     }
     default:
-        hud_.draw(buildHudData());
+        HudData hudData = buildHudData();
+        hudData.alignmentAssist = alignmentAssist_ && !stateMachine_.isPaused();
+        hud_.draw(hudData);
         if (stateMachine_.isPaused()) {
             action = menu_.drawPauseMenu();
         }

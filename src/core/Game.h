@@ -22,6 +22,7 @@
 
 class DebrisField;
 class ImGuiLayer;
+class ParticleSystem;
 class Pod;
 class Station;
 
@@ -45,6 +46,7 @@ private:
     void updateCinematicCamera(float deltaSeconds);
     void updateAudio();
     void updateCursorCapture();
+    void updateParticles(float deltaSeconds);
 
     void changeState(GameState next);
     void onStateEntered(GameState from, GameState to);
@@ -70,6 +72,7 @@ private:
     Camera camera_;
     std::unique_ptr<Renderer> renderer_;
     std::unique_ptr<ImGuiLayer> imgui_;
+    std::unique_ptr<ParticleSystem> particles_;
     AudioEngine audio_;
     ModelLibrary models_;
     SceneNode world_;
@@ -95,6 +98,7 @@ private:
     float damageFlash_ = 0.0f;
     float lastLockToneStep_ = 0.0f;
     float cinematicAngle_ = 0.0f;
+    float panelSparkCooldown_ = 0.0f;
     std::string banner_;
     float bannerSeconds_ = 0.0f;
     int lastPointLightCount_ = 0;

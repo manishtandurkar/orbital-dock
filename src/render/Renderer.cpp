@@ -3,6 +3,7 @@
 #include "render/Camera.h"
 #include "render/GlDebug.h"
 #include "render/Model.h"
+#include "render/ParticleSystem.h"
 #include "render/Texture.h"
 
 #include <glad/glad.h>
@@ -28,6 +29,7 @@ Renderer::Renderer()
     : litShader_("shaders/blinn_phong.vert", "shaders/blinn_phong.frag")
     , skyboxShader_("shaders/skybox.vert", "shaders/skybox.frag")
     , lineShader_("shaders/debug_line.vert", "shaders/debug_line.frag")
+    , particleShader_("shaders/particle.vert", "shaders/particle.frag")
     , sky_("textures/sky_")
     , skyCube_(Mesh::createUnitCube())
 {
@@ -36,6 +38,7 @@ Renderer::Renderer()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     glEnable(GL_MULTISAMPLE);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     litShader_.use();
     litShader_.setInt("uDiffuseMap", kDiffuseTextureUnit);
@@ -53,6 +56,7 @@ void Renderer::beginFrame(const Camera& camera, const glm::ivec2& framebufferSiz
     glDepthFunc(GL_LESS);
     glEnable(GL_CULL_FACE);
 
+    viewportHeight_ = static_cast<float>(framebufferSize.y);
     view_ = camera.viewMatrix();
     projection_ = camera.projectionMatrix();
 
@@ -123,6 +127,22 @@ void Renderer::drawMesh(const Mesh& mesh, const glm::mat4& world, const glm::vec
     litShader_.setVec3("uEmissiveColor", color);
     litShader_.setBool("uUseDiffuseMap", false);
     mesh.draw();
+}
+
+void Renderer::drawParticles(ParticleSystem& particles)
+{
+    if (particles.liveCount() == 0) {
+        return;
+    }
+    particleShader_.use();
+    particleShader_.setMat4("uViewProjection", projection_ * view_);
+    particleShader_.setFloat("uViewportHeight", viewportHeight_);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glDepthMask(GL_FALSE);
+    particles.draw();
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
 }
 
 void Renderer::endFrame()

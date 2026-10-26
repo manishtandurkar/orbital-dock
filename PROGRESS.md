@@ -30,14 +30,15 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 - M4 docking: `Station` spins about Z at 3 deg/s; docking arm folds out (-75 deg to 0) when the docking zone (90 m) is entered; `DockingCheck` (distance 1.5 m, rel speed 1.2 m/s, alignment 10 deg, roll 15 deg, hold 1 s). With Tab assist on, the pod's angular damping matches the station spin so roll stays aligned. On lock the pod is reparented under the port node and 4 clamps close.
 - M5 EVA: `EvaController` first-person walk on the deck on top of the hub (station-local, so it rotates with the station), hold E for 3 s at the damaged panel, 75 s life support (`Mission`). Win/Lose screens.
 - M6 (partial): ImGui `Hud`, `Menu` (main, pause, end), `AudioEngine` (miniaudio, 8 placeholder WAVs in `assets/audio`, disables itself without a device).
+- Particles (`render/ParticleSystem`, additive point sprites): impact sparks, damaged-panel sparks, repair-arc sparks, engine exhaust, docking puff.
+- README.md with build steps, controls and lab-requirement mapping.
 - Debug: F1 overlay (FPS, collision wireframes); F2 while F1 is on jumps the pod 20 m in front of the port, aligned, for testing/demo rehearsal.
 
 ### Not yet done / next
-- README.md (build, controls, how to replace models from Blender).
-- Not yet re-tested: pause menu and life-support loss path (code exists). Hull-destroyed loss path not tested.
+- Hull-destroyed loss path not tested (pause menu and life-support loss were tested and work).
 - macOS and Windows builds have never been compiled; do this first on both laptops.
 - Replace placeholder OBJ models with Blender models (keep the file names in `assets/models`; export OBJ with Forward -Z, Up Y, include normals and UVs, write materials). Station layout constants (hub radius 6, deck top y=6.6, arm base z=13, arm length 10, port docking offset 4.4) are in `src/gameplay/Station.cpp` and colliders there must match the new models.
-- Optional: stereo side-by-side view, particle sparks, tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`).
+- Optional: stereo side-by-side view, tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`).
 
 ### Notes
 - An old remote branch `claude/magical-cannon-9rcwph` points at the same commit; it could not be deleted from the cloud session and can be deleted on GitHub.

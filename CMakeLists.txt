@@ -114,6 +114,7 @@ set(ORBITAL_DOCK_SOURCES
     src/render/Model.cpp
     src/render/ModelLibrary.cpp
     src/render/DebugLines.cpp
+    src/render/ParticleSystem.cpp
     src/render/Renderer.cpp
     src/scene/SceneNode.cpp
     src/physics/Collision.cpp

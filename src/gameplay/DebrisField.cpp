@@ -12,13 +12,13 @@
 
 namespace {
 
-constexpr int kPieceCount = 72;
+constexpr int kPieceCount = 48;
 constexpr unsigned int kRandomSeed = 1337u;
 constexpr glm::vec3 kFieldMin{-90.0f, -60.0f, 70.0f};
 constexpr glm::vec3 kFieldMax{90.0f, 60.0f, 320.0f};
 constexpr float kBoundsMargin = 40.0f;
 constexpr float kMinSpawnDistanceFromPod = 60.0f;
-constexpr float kHunterIntervalSeconds = 7.0f;
+constexpr float kHunterIntervalSeconds = 15.0f;
 constexpr float kHunterMinDistance = 85.0f;
 constexpr float kHunterMaxDistance = 140.0f;
 

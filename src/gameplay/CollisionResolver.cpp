@@ -20,9 +20,9 @@ constexpr float kStationRestitution = 0.35f;
 constexpr float kDebrisStationRestitution = 0.6f;
 constexpr float kMinDamagingSpeed = 0.6f;
 constexpr float kMinStationDamagingSpeed = 1.5f;
-constexpr float kMaxSingleImpactDamage = 22.0f;
+constexpr float kMaxSingleImpactDamage = 12.0f;
 constexpr float kStationBroadPhaseRadius = 80.0f;
-constexpr float kSoftCaptureMaxSpeed = 2.0f;
+constexpr float kSoftCaptureMaxSpeed = 3.0f;
 
 struct StationContact {
     bool hit = false;

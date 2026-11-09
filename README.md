@@ -46,7 +46,7 @@ The `assets/` folder is copied next to the executable after every build, so the 
 | Phase | Goal |
 | --- | --- |
 | Flight | Reach the station. Debris drifts through the corridor and some pieces head straight for you. Every hit shakes the camera and costs hull integrity. |
-| Docking | Inside 90 m the docking arm unfolds. Line up with the green axis guide, match the station's roll and slide in gently. Distance, relative speed, alignment and roll must all be within tolerance for one second to lock. |
+| Docking | Inside 90 m the docking arm unfolds. Line up with the green axis guide, match the station's roll and slide in gently. Distance, relative speed, alignment and roll must all be within tolerance for half a second to lock. |
 | EVA | Walk along the deck on top of the station to the sparking panel at the far end and hold `E` to repair it before your oxygen runs out. |
 
 ### Controls

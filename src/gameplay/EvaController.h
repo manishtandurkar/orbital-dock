@@ -10,7 +10,7 @@ class SceneNode;
 
 class EvaController {
 public:
-    static constexpr float kRepairSeconds = 3.0f;
+    static constexpr float kRepairSeconds = 2.0f;
 
     void reset();
     void update(const Input& input, float deltaSeconds, const glm::vec3& panelLocalPosition, bool panelRepaired);

@@ -28,7 +28,7 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 - M2 rendering: Assimp `Model` + `ModelLibrary`, `Texture`, `Cubemap` starfield skybox, Blinn-Phong (`assets/shaders/blinn_phong.*`) with 1 sun + up to 8 point lights (tone mapping now lives in the post-process pass), `DebugLines`, `SceneNode` hierarchy with reparenting.
 - M3 flight: `Pod` thrusters (W/S, A/D yaw, Q/E roll, R/F up/down, mouse pitch/yaw, Space brake), `DebrisField` (72 pieces, drifting/tumbling/despawned, a "hunter" piece aimed at the pod every 7 s), `CollisionResolver` (sphere-sphere, sphere-AABB in each station part's local space, impulse response, hull damage), `ChaseCamera` with screen shake and V toggles cockpit view.
 - M4 docking: `Station` spins about Z at 3 deg/s; docking arm folds out (-75 deg to 0) when the docking zone (90 m) is entered; `DockingCheck` (distance 1.5 m, rel speed 1.2 m/s, alignment 10 deg, roll 15 deg, hold 1 s). With Tab assist on, the pod's angular damping matches the station spin so roll stays aligned. On lock the pod is reparented under the port node and 4 clamps close.
-- M5 EVA: `EvaController` first-person walk on the deck on top of the hub (station-local, so it rotates with the station), hold E for 3 s at the damaged panel, 75 s life support (`Mission`). Win/Lose screens.
+- M5 EVA: `EvaController` first-person walk on the deck on top of the hub (station-local, so it rotates with the station), hold E for 2 s at the damaged panel, 120 s life support (`Mission`). Win/Lose screens.
 - M6 (partial): ImGui `Hud`, `Menu` (main, pause, end), `AudioEngine` (miniaudio, 8 placeholder WAVs in `assets/audio`, disables itself without a device).
 - Particles (`render/ParticleSystem`, additive point sprites): impact sparks, damaged-panel sparks, repair-arc sparks, engine exhaust, docking puff.
 - README.md with build steps, controls and lab-requirement mapping.
@@ -67,8 +67,8 @@ Six milestones, each committed and pushed on branch `feature/core-gameplay`:
 
 ### Not yet done / next
 - macOS: compiles and launches (Apple clang 21, CMake 4.4, branch `fix/macos-build`). The fix: Assimp's bundled zlib fails to compile against the new macOS SDK (`fdopen` macro clash in `zutil.h`), so on Apple `ASSIMP_BUILD_ZLIB` is OFF and the system zlib is used. The full checklist below (gameplay, sound, FPS) still needs a manual run on the Mac.
-- Windows has never been compiled; do this next on the Windows laptop.
-- Optional: tuning of damage/hunter rates (`CollisionResolver.cpp`, `DebrisField.cpp`), re-record the demo video including EVA and the win screen.
+- Windows: builds and runs on the Windows laptop (tested by a teammate on their laptop, 2026-11-09).
+- Difficulty eased 2026-11-09 after a Mac playtest felt too hard: docking tolerance 2.5 m, 2.0 m/s, 20 deg align, 30 deg roll, 0.5 s hold; soft capture under 3 m/s; max impact damage 12; 48 debris, hunter every 15 s; 120 s life support; 2 s repair, interact reach 3.5 m and 50 deg cone. Autopilot `--demo` still wins. Optional: re-record the demo video including EVA and the win screen.
 - Merge `feature/core-gameplay` into `main` once both laptops build and run it.
 
 ### Notes
@@ -104,8 +104,8 @@ build\Release\orbital_dock.exe
 1. Window opens, main menu shows the station, planet and stars. Controls button expands the list.
 2. Start Mission: fly with W, mouse look, A/D, Q/E, R/F, Space brake, V cockpit view. Debris hits shake the screen and cost hull. Sound plays (thrusters, impacts, ambient hum).
 3. Follow the STATION marker; inside 90 m the arm unfolds and the docking computer appears. Line up and push in gently with Shift + W. Shortcut for rehearsals: F1 then F2 jumps to the approach.
-4. Clamps lock, then EVA: walk with WASD to the sparking panel, hold E for 3 s. Mission Complete screen.
-5. Lose paths: F1 then F4 four times (hull destroyed), wait out the 75 s oxygen in EVA, or fly more than 800 m away.
+4. Clamps lock, then EVA: walk with WASD to the sparking panel, hold E for 2 s. Mission Complete screen.
+5. Lose paths: F1 then F4 four times (hull destroyed), wait out the 120 s oxygen in EVA, or fly more than 800 m away.
 6. Esc pause menu: Resume, Restart, Main Menu, Quit. F3 stereo, F11 fullscreen, F1 shows FPS (target 60).
 7. The terminal prints `State: A -> B` lines on every phase change, useful when reporting bugs.
 

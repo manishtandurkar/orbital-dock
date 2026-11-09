@@ -11,7 +11,7 @@ enum class LossReason {
 
 class Mission {
 public:
-    static constexpr float kLifeSupportSeconds = 75.0f;
+    static constexpr float kLifeSupportSeconds = 120.0f;
 
     void reset();
     void updateFlight(float deltaSeconds);

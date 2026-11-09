@@ -4,11 +4,11 @@
 #include <glm/vec3.hpp>
 
 struct DockingTolerance {
-    float maxDistance = 1.5f;
-    float maxRelativeSpeed = 1.2f;
-    float maxAlignmentDegrees = 10.0f;
-    float maxRollDegrees = 15.0f;
-    float holdSeconds = 1.0f;
+    float maxDistance = 2.5f;
+    float maxRelativeSpeed = 2.0f;
+    float maxAlignmentDegrees = 20.0f;
+    float maxRollDegrees = 30.0f;
+    float holdSeconds = 0.5f;
 };
 
 struct DockingInputs {
